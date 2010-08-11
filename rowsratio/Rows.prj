@@ -1,0 +1,27 @@
+[Project ID]
+Signature=UE Proj: v.1
+[Project Information]
+Use Relative Directory=1
+Relative to Project File=1
+Include Sub Directories=1
+Project Tagfile=
+Project Wordfile=
+Filter=
+Create Tagfile=0
+[Files]
+0=StartMain.sps
+1=ListTOGS.sav
+2=.\Total\
+3=.\ObData\
+4=.\Ratio\
+5=.\total2008\
+6=.\своды ПМ 2007\
+7=OkvedAssemblyClass.py
+8=TestOkved.py
+9=okved_assembly .xls
+10=RowsRatio.py
+11=ListOkvedClass.py
+[Group]
+0=Data
+[Backup]
+LastComment=8 июля 2010
