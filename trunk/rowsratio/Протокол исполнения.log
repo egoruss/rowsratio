@@ -1,0 +1,1002 @@
+insert FILE =  "e:\Tmp\Spss\Rows\TestStr.py"
+       SYNTAX=INTERACTIVE
+       ERROR=CONTINUE
+       CD=YES.
+6999  0  BEGIN PROGRAM PYTHON.
+7000  0  # !python.exe
+7001  0  # coding: cp1251
+7002  0  #
+7003  0  #C:\Program Files (x86)\SPSSInc\PASWStatistics18\paswstat.com -production e:\Tmp\Spss\Rows\StartMain.spj
+7004  0  ########################################
+7005  0  #
+7006  0  #  To Do:
+7007  0  #         + Итоги по показателям малых.
+7008  0  #         + Установка условий для 2009 и 2007 годов.
+7009  0  #         + Экспорт итогов в XLS.
+7010  0  #         + Исправить кривые Excel-файлы долей микро Луппова.
+7011  0  #         + Импорт долей микро.
+7012  0  #         + Разделение итогов 2007 по долям.
+7013  0  #         + Скорректированные значения по малым и микро.
+7014  0  #         + Доли по трём группам показателей.
+7015  0  #
+7016  0  ########################################
+7017  0  #       28.07.2010 15:34:01
+7018  0  ########################################
+7019  0  from __future__ import with_statement
+7020  0  import os
+7021  0  from datetime import datetime, date, time
+7022  0  from time import *
+7023  0  from types import *
+7024  0  import SpssClient
+7025  0  import spss
+7026  0  from xlwt import *
+7027  0  import xlrd
+7028  0  
+7029  0  newDir         = 'e:\Tmp\Spss\Rows'
+7030  0  dataDir        = newDir + '\ObData'
+7031  0  totalDir       = '\Total'
+7032  0  totalDir2007   = newDir + '\своды ПМ 2007\\'
+7033  0  ratioDir       = newDir + '\Ratio\\'
+7034  0  ListTOGS       = '\ListTOGS'
+7035  0  nameListTOGS   = 'TOGS'
+7036  0  sav            = '.sav'
+7037  0  mal            = '_ПМ'
+7038  0  mic            = '_МП(микро)'
+7039  0  y2008          = '2008'
+7040  0  sMesFileNo     = 'Отсутствует файл с данными: '
+7041  0  sMesFileYes    = 'Есть файл с данными : '
+7042  0  os.chdir(newDir)
+7043  0  sys.path.append(newDir)
+7044  0  
+7045  0  _numvesmal        = 33          # Индекс веса у малых = номер переменной - 1
+7046  0  _numvesmic        = 30          # Индекс веса у микро
+7047  0  
+7048  0  #---  Defining Classes  ---
+7049  0  class rTerr:
+7050  0      def __init__ (self, nO, sT, kO, sO):
+7051  0          self.OKATO = "%02i" % nO     # ОКАТО
+7052  0          self.sTerr = sT     # Название территории
+7053  0          self.nOkrug = "%02i" % kO    # Код округа
+7054  0          self.sOkrug = sO    # Название округа
+7055  0  
+7056  0  class cTerr:
+7057  0      def __init__ (self, nO, sT, kO, sO):
+7058  0          self.OKATO = "%02i" % nO     # ОКАТО
+7059  0          self.sTerr = sT     # Название территории
+7060  0          self.nOkrug = "%02i" % kO    # Код округа
+7061  0          self.sOkrug = sO    # Название округа
+7062  0          self.malFile = dataDir + '\\' + self.OKATO + mal + sav    # Имя файла данных малых предприятий.
+7063  0          self.micFile = dataDir + '\\' + self.OKATO + mic + sav    # Имя файла данных микропредприятий.
+7064  0          self.nameDataSet = 'D' + self.OKATO                       # Имя DATASET
+7065  0  
+7066  0          self.malTot2008 = [0,0,0,0,0,0,0,0,0,0,0,0.0]                 # Итоги по 2008 году
+7067  0          self.malTot2009 = [0,0,0,0,0,0,0,0,0,0,0,0.0]                 # Итоги по 2009 году
+7068  0          self.malTot2007 = [0,0,0,0,0,0,0,0,0,0,0,0.0]                 # Итоги по 2007 году
+7069  0          self.malTos2007 = [0,0,0,0,0,0,0,0,0,0,0,0.0]                 # Итоги по 2007 году скорректированные
+7070  0          self.malcoeff   = [1,1,1,1,1,1,1,1,1,1,1,1.0]                 # Коэффициенты корреции
+7071  0          self.malnnab     = 0                                      # Количество наблюдений
+7072  0          self.malknab     = 0                                      # Количество корректных наблюдений
+7073  0          self.malrnab     = 0                                      # Количество ошибочных наблюдений
+7074  0          self.numvesmal   = 33           # Индекс веса у малых = номер переменной - 1
+7075  0          self.malCHT      = 5            # Индекс средней численности
+7076  0          self.malVIR      = 8            # Индекс выручки
+7077  0          self.malCHTres   = 100          # Ограничение средней численности малых
+7078  0          self.malVIRres   = 400000000    # Ограничение выручки малых
+7079  0  
+7080  0          self.micRatio2007 = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]             # Доля микропредприятий по 2007 г
+            оду
+7081  0          self.malRatio2007 = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]             # Доля малых предприятий по 2007 
+            году
+7082  0  
+7083  0          self.micTot2008 = [0,0,0,0,0,0,0,0,0,0,0.0]                 # Итоги по 2008 году
+7084  0          self.micTot2009 = [0,0,0,0,0,0,0,0,0,0,0.0]                 # Итоги по 2009 году
+7085  0          self.micTot2007 = [0,0,0,0,0,0,0,0,0,0,0.0]                 # Итоги по 2007 году
+7086  0          self.micTos2007 = [0,0,0,0,0,0,0,0,0,0,0.0]                 # Итоги по 2007 году скорректированные
+7087  0          self.miccoeff   = [1,1,1,1,1,1,1,1,1,1,1.0]                 # Коэффициенты корреции
+7088  0          self.micnnab     = 0                                      # Количество наблюдений
+7089  0          self.micknab     = 0                                      # Количество корректных наблюдений
+7090  0          self.micrnab     = 0                                      # Количество ошибочных наблюдений
+7091  0          self.numvesmic   = 30          # Индекс веса у микро = номер переменной - 1
+7092  0          self.micCHT      = 5            # Индекс средней численности
+7093  0          self.micVIR      = 8            # Индекс выручки
+7094  0          self.micCHTres   = 15           # Ограничение средней численности микропредприятий
+7095  0          self.micVIRres   = 60000000     # Ограничение выручки микропредприятий
+7096  0  
+7097  0      def evalTotal(self, vM, mFile, numves, nnab, Tot2008, Tot2009, coeff, nCHT, nVIR, CHTres, VIRres, npok):
+7098  0          def totalmal(self, rules, row, ves, total):
+7099  0              if rules:
+7100  0                  total[0]  = total[0]  + ves                           # Количество предприятий
+7101  0                  for i in range(1, len(total)-1):
+7102  0                      total[i]  = total[i]  + missVal(dmal.cases[row, npok[i-1][0]][0]) * ves
+7103  0  
+7104  0                  total[len(total)-1] = total[len(total)-1] + 1                        # Количество корректных наблюдений
+7105  0  
+7106  0          def rules2008(self, row):
+7107  0              """ Правила 2008 года  """
+7108  0              return True
+7109  0  
+7110  0          def rules2009(self, row, nCHT, nVIR, CHTres, VIRres):
+7111  0              """ Правила 2009 года  """
+7112  0              if  missVal(dmal.cases[row,nCHT] [0]) <= CHTres and \
+7113  0                  missVal(dmal.cases[row,nVIR] [0]) <= VIRres :
+7114  0                  return True
+7115  0              return False
+7116  0  
+7117  0          def rules2007(self, row):
+7118  0              """ Правила 2007 года  """
+7119  0              return True
+7120  0  
+7121  0          spss.Submit(r"""
+7122  0          GET FILE = '%s'.
+7123  0          DATASET NAME %s.
+7124  0          """ %(mFile, self.nameDataSet))
+7125  0          with spss.DataStep():
+7126  0              # По наблюдениям выборки
+7127  0              dmal = spss.Dataset(name=self.nameDataSet)
+7128  0              self.malknab = 0
+7129  0              for i in range(len(dmal.cases)):
+7130  0                 ves = missVal(dmal.cases[i,numves][0])                # Вес предприятий
+7131  0                 if missVal(dmal.cases[i,0][0]) <> 0 and ves <> 0:         # По ненулевым ОКПО и ненулевым весам
+7132  0                     totalmal(self, True,    i, ves, Tot2008)              # по правилам 2008 года
+7133  0                     totalmal(self, rules2009(self, i, nCHT, nVIR, CHTres, VIRres), i, ves, Tot2009)              # по правил
+            ам 2009 года
+7134  0                     #totalmal(self, rules2007(self, i), i, ves, self.malTot2007)              # по правилам 2007 года
+7135  0  
+7136  0          nnab = i                # Количество наблюдений
+7137  0  
+7138  0          for itot in range(len(Tot2009)):
+7139  0              if Tot2008[itot] > 0:
+7140  0                  coeff[itot] = Tot2009[itot] / Tot2008[itot]
+7141  0              else:
+7142  0                  coeff[itot] = 1
+7143  0              #print itot, self.malcoeff[itot], self.malTot2009[itot], self.malTot2008[itot]
+7144  0  
+7145  0          spss.Submit(r"""
+7146  0          DATASET CLOSE *.
+7147  0          """ )
+7148  0  
+7149  0  class TTotal(cTerr):
+7150  0      aTerr         = []
+7151  0      rTerr         = []
+7152  0      numpokmal     = 12
+7153  0      numpokmic     = 11
+7154  0      vMikro        = False
+7155  0      malpok = [
+7156  0      [5  , 'Cредняя численность работников - всего,чел.', 'tab_33(01-09)_list1.xls'],
+7157  0      [8  , 'Выручка (нетто) от реализации товаров, продукции, работ, услуг (без НДС, акцизов и аналогичных обязательных плат
+            ежей),тыс.руб.', 'tab_33(12)_list1.xls'],
+7158  0      [11 , 'Инвестиции в основной капитал (в части новых и приобретенных по импорту основных средств),тыс.руб.', 'tab_33(13)
+            _list1.xls'],
+7159  0      [14 , 'Оборот организации по малым предприятиям,тыс.руб.', 'tab_33(o)_list1.xls'],
+7160  0      [17 , 'Отгружено товаров собственного производства, выполнено работ и услуг собственными силами (без НДС и акциза),тыс.
+            руб.', 'tab_33(06)_list1.xls'],
+7161  0      [20 , 'Продано товаров несобственного производства (без НДС и акцизов),тыс.руб.', 'tab_33(07)_list1.xls'],
+7162  0      [23 , 'Средняя численность работников списочного состава (без внешних совместителей),чел.', 'tab_33(02-09)_list1.xls'],
+7163  0      [26 , 'Фонд начисленной заработной платы внешним совместителям,тыс.руб.', 'tab_33(03-11)_list1.xls'],
+7164  0      [29 , 'Фонд начисленной заработной платы всех работников,тыс.руб.', 'tab_33(01-11)_list1.xls'],
+7165  0      [32 , 'Фонд начисленной заработной платы работников списочного состава (без внешних совместителей),тыс.руб.', 'tab_33(0
+            2-11)_list1.xls']
+7166  0      ]
+7167  0      micpok = [
+7168  0      [5  , 'Средняя численность работников (включая выполнявших работы по договорам гражданско-правового характера),чел.'],
+7169  0      [8  , 'Выручка (нетто) от продажи товаров, продукции, работ, услуг (без НДС, акцизов и аналогичных обязательных платеже
+            й),тыс.руб.'],
+7170  0      [11 , 'Инвестиции в основной капитал (в части новых и приобретённых по импорту основных средств) - всего,тыс.руб.'],
+7171  0      [14 , 'Оборот организаций,тыс.руб.'],
+7172  0      [17 , 'Отгружено товаров собственного производства, выполнено работ и услуг собственными силами (без НДС, акцизов и ана
+            логичных обязательных платежей),тыс.руб.'],
+7173  0      [20 , 'Продано товаров несобственного производства (без НДС, акцизов и аналогичных обязательных платежей),тыс.руб.'],
+7174  0      [23 , 'Средняя численность работников списочного состава (без внешних совместителей),чел.'],
+7175  0      [26 , 'Фонд начисленной заработной платы работников,тыс.руб.'],
+7176  0      [29 , 'Фонд начисленной заработной платы работников списочного состава и внешних совместителей,тыс.руб.']
+7177  0      ]
+7178  0  
+7179  0      def __init__ (self):
+7180  0          pass
+7181  0  
+7182  0      def getTotal2007(self):
+7183  0          np = 0
+7184  0          for pok in self.malpok:
+7185  0              os.chdir(totalDir2007)
+7186  0              np = np + 1                 # Номер показателя в списке итогов malTot2007
+7187  0              if os.access(pok[2], os.F_OK):
+7188  0                  ToPrintLog('Найден файл итогов ' + pok[2])
+7189  0                  rb = xlrd.open_workbook(totalDir2007 + pok[2],formatting_info=True,encoding_override="cp1251")
+7190  0                  sh = rb.sheet_by_index(0)
+7191  0                  for rt in self.aTerr:
+7192  0                      for icol in range(3, sh.ncols-1):
+7193  0                          sName = sh.cell_value(rowx=4, colx=icol).encode('cp1251').strip()
+7194  0                          #print icol, type(sName), type(rt.sTerr), sName, '-', rt.sTerr, sName.strip() == rt.sTerr.strip()
+7195  0                          if sName == rt.sTerr.strip():
+7196  0                              rt.malTot2007[np] = sh.cell_value(rowx=6, colx=icol)
+7197  0                              ToPrintLog('Найдена: ' + sName + ' ' + str(rt.malTot2007[np]))
+7198  0              else:
+7199  0                  ToPrintLog('Не найден!! файл итогов ' + pok[2])
+7200  0  
+7201  0      def getRatioMic(self):
+7202  0          def getProd(self, rP, stro, scol, rcol):
+7203  0              for rownum in range(sh.nrows):
+7204  0                  parsName = sh.cell_value(rowx=rownum, colx=scol).encode('cp1251')
+7205  0                  #print type(parsName), parsName.strip(), parsName.find(stro)
+7206  0                  if parsName.find(stro) >= 0:
+7207  0                      ToPrintLog('Найдена доля -' + parsName + '- ' + str(sh.cell_value(rowx=rownum, colx=rcol)))
+7208  0                      return sh.cell_value(rowx=rownum, colx=rcol)
+7209  0  
+7210  0              return rP
+7211  0  
+7212  0          os.chdir(ratioDir)
+7213  0          for rt in self.aTerr:
+7214  0              if os.access(rt.OKATO + ' доли.xls', os.F_OK):
+7215  0                  rb = xlrd.open_workbook(ratioDir + rt.OKATO + ' доли.xls',formatting_info=True,encoding_override="cp1251")
+7216  0                  sh = rb.sheet_by_index(0)
+7217  0                  rPred  = sh.cell_value(rowx=3, colx=2)
+7218  0                  rProd  = getProd(self, rPred, 'продано товаров', 0, 2)
+7219  0                  rOtgr  = getProd(self, rPred, 'отгружено товаров', 0, 2)
+7220  0                  ToPrintLog('Найден файл долей для ' + ' ' + rt.OKATO + ' ' + rt.sTerr.strip() + ' ' + str(rPred))
+7221  0  
+7222  0                  rt.micRatio2007[0]  =  rPred
+7223  0                  rt.micRatio2007[1]  =  rPred
+7224  0                  rt.micRatio2007[2]  =  rProd
+7225  0                  rt.micRatio2007[3]  =  rProd
+7226  0                  rt.micRatio2007[4]  =  rProd
+7227  0                  rt.micRatio2007[5]  =  rOtgr
+7228  0                  rt.micRatio2007[6]  =  rProd
+7229  0                  rt.micRatio2007[7]  =  rPred
+7230  0                  rt.micRatio2007[8]  =  rPred
+7231  0                  rt.micRatio2007[9]  =  rPred
+7232  0                  rt.micRatio2007[10] =  rPred
+7233  0                  rt.micRatio2007[11] =  rPred
+7234  0  
+7235  0                  for np in range(0, len(rt.micRatio2007)):
+7236  0                      rt.malRatio2007[np]  = 1 - rt.micRatio2007[np]          # Доля малых от микро
+7237  0                      rt.malTos2007[np] = rt.malTot2007[np] * rt.malRatio2007[np] * rt.malcoeff[np]
+7238  0                  for np in range(0, len(rt.micTot2007)):
+7239  0                      rt.micTot2007[np] = rt.malTot2007[np]
+7240  0                      rt.micTos2007[np] = rt.malTot2007[np] * rt.micRatio2007[np] * rt.miccoeff[np]
+7241  0                  rt.micTot2007[8] = rt.malTot2007[10]
+7242  0                  rt.micTos2007[8] = rt.malTot2007[10] * rt.micRatio2007[10] * rt.miccoeff[8]
+7243  0              else:
+7244  0                  ToPrintLog('Не найден!! файл долей для ' + rt.OKATO + ' ' + rt.sTerr.strip())
+7245  0  
+7246  0  
+7247  0      def allTerr(self):
+7248  0          ToPrintLog('    Малые : Вычисление коэффициентов по территориям')
+7249  0          ToPrintLog('Окр.    |ОКАТ|Наблюде|Корр Наблюде| Предприятий  | Численность ')
+7250  0          for rt in self.aTerr:
+7251  0              self.vMikro = False
+7252  0              rt.evalTotal(self.vMikro, rt.malFile, rt.numvesmal, rt.malnnab,
+7253  0              rt.malTot2008, rt.malTot2009, rt.malcoeff,
+7254  0              rt.malCHT, rt.malVIR, rt.malCHTres, rt.malVIRres, self.malpok)
+7255  0  
+7256  0              self.vMikro = True
+7257  0              rt.evalTotal(self.vMikro, rt.micFile, rt.numvesmic, rt.micnnab,
+7258  0              rt.micTot2008, rt.micTot2009, rt.miccoeff,
+7259  0              rt.micCHT, rt.micVIR, rt.micCHTres, rt.micVIRres, self.micpok)
+7260  0  
+7261  0              ToPrintLog(rt.nOkrug+'2008ма' + '|{0:4}|{1:7d}|{2:12.0f}|{3:13.0f} |{4:13.0f}'.format(rt.OKATO,rt.malnnab,rt.ma
+            lTot2008[11],rt.malTot2008[0], rt.malTot2008[1]))
+7262  0              ToPrintLog('   2009 малые        |{0:12.0f}|{1:13.0f} |{2:13.0f}'.format(rt.malTot2009[11],rt.malTot2009[0],rt.
+            malTot2009[1]))
+7263  0              ToPrintLog('   Коэффициент малые |{0:12.4f}|{1:13.4f} |{2:13.4f}'.format(rt.malcoeff[11],rt.malcoeff[0],rt.malc
+            oeff[1]))
+7264  0  
+7265  0              ToPrintLog(rt.nOkrug+'2008ми' + '|{0:4}|{1:7d}|{2:12.0f}|{3:13.0f} |{4:13.0f}'.format(rt.OKATO,rt.malnnab,rt.mi
+            cTot2008[10],rt.micTot2008[0], rt.micTot2008[1]))
+7266  0              ToPrintLog('   2009 микро        |{0:12.0f}|{1:13.0f} |{2:13.0f}'.format(rt.micTot2009[10],rt.micTot2009[0],rt.
+            micTot2009[1]))
+7267  0              ToPrintLog('   Коэффициент микро |{0:12.4f}|{1:13.4f} |{2:13.4f}'.format(rt.miccoeff[10],rt.miccoeff[0],rt.micc
+            oeff[1]))
+7268  0  
+7269  0          closeSPSSfiles()
+7270  0  
+7271  0          self.getTotal2007()             # Взять Итоги 2007 года
+7272  0          self.getRatioMic()              # Взять доли микропредприятий
+7273  0  
+7274  0      def allTerrTotalToXLS(self):
+7275  0          ToPrintLog('Экспорт итогов по территориям в Excel')
+7276  0          dirTotal = newDir + totalDir + '\\'
+7277  0          ezxf = easyxf
+7278  0          heading_xf = ezxf('font: name Calibri, bold on, height 230; \
+7279  0          align: wrap yes, vert centre, horiz center')
+7280  0          headcol_xf = ezxf('font: name Calibri, bold on; \
+7281  0          align: wrap yes, vert centre, horiz center; \
+7282  0          borders: left 1, right 1, top 1, bottom 1')
+7283  0          headrow_xf = ezxf('font: name Calibri; \
+7284  0          align: wrap yes, vert centre, horiz left; \
+7285  0          borders:left 1, right 1, top 1, bottom 1')
+7286  0          valnrow_xf = ezxf('font: name Calibri, bold off; \
+7287  0          align: wrap no, vert centre, horiz right; \
+7288  0          borders:left 1, right 1, top 1, bottom 1', \
+7289  0          num_format_str="### ### ### ###")
+7290  0          valdrow_xf = ezxf('font: name Calibri, bold off; \
+7291  0          align: wrap no, vert centre, horiz right; \
+7292  0          borders:left 1, right 1, top 1, bottom 1', \
+7293  0          num_format_str="### ### ### ###.0")
+7294  0          valfrow_xf = ezxf('font: name Calibri, bold off; \
+7295  0          align: wrap no, vert centre, horiz right; \
+7296  0          borders:left 1, right 1, top 1, bottom 1', \
+7297  0          num_format_str="0.0000")
+7298  0  
+7299  0          def allTerrTotalCoeffmal(self, mic, ws, namePok, nTot, startRow):
+7300  0              it = 2
+7301  0              ws.write(startRow,0,nTot,headrow_xf)
+7302  0              #ws.write(startRow + 1,0,"",headrow_xf)
+7303  0              if mic:
+7304  0                  nameRatio = "    Доля микропредприятий"
+7305  0              else:
+7306  0                  nameRatio = "    Доля малых предприятий"
+7307  0              ws.write(startRow + 1,1,"    База 2008 года - исходная",headrow_xf)
+7308  0              ws.write(startRow + 2,1,"    База 2008 года - все критерии",headrow_xf)
+7309  0              ws.write(startRow + 3,1,"    Коэффициент коррекции ряда",headrow_xf)
+7310  0              ws.write(startRow + 4,1,"    Итоги 2007 года исходные",headrow_xf)
+7311  0              ws.write(startRow + 5,1,nameRatio, headrow_xf)
+7312  0              ws.write(startRow + 6,1,"    Итоги 2007 года скорректированные",headrow_xf)
+7313  0              for rt in self.aTerr:
+7314  0                  if mic:
+7315  0                      if nTot in (0, 1, 7):
+7316  0                          ws.write(startRow + 1, it, rt.micTot2008[nTot],     valnrow_xf)
+7317  0                          ws.write(startRow + 2, it, rt.micTot2009[nTot],     valnrow_xf)
+7318  0                          ws.write(startRow + 3, it, rt.miccoeff[nTot],       valfrow_xf)
+7319  0                          ws.write(startRow + 4, it, rt.micTot2007[nTot],     valnrow_xf)
+7320  0                          ws.write(startRow + 5, it, rt.micRatio2007[nTot],   valfrow_xf)
+7321  0                          ws.write(startRow + 6, it, rt.micTos2007[nTot],     valnrow_xf)
+7322  0                      else:
+7323  0                          ws.write(startRow + 1, it, rt.micTot2008[nTot],     valdrow_xf)
+7324  0                          ws.write(startRow + 2, it, rt.micTot2009[nTot],     valdrow_xf)
+7325  0                          ws.write(startRow + 3, it, rt.miccoeff[nTot],       valfrow_xf)
+7326  0                          ws.write(startRow + 4, it, rt.micTot2007[nTot],     valdrow_xf)
+7327  0                          ws.write(startRow + 5, it, rt.micRatio2007[nTot],   valfrow_xf)
+7328  0                          ws.write(startRow + 6, it, rt.micTos2007[nTot],     valdrow_xf)
+7329  0                  else:
+7330  0                      if nTot in (0, 1, 7):
+7331  0                          ws.write(startRow + 1, it, rt.malTot2008[nTot],     valnrow_xf)
+7332  0                          ws.write(startRow + 2, it, rt.malTot2009[nTot],     valnrow_xf)
+7333  0                          ws.write(startRow + 3, it, rt.malcoeff[nTot],       valfrow_xf)
+7334  0                          ws.write(startRow + 4, it, rt.malTot2007[nTot],     valnrow_xf)
+7335  0                          ws.write(startRow + 5, it, rt.malRatio2007[nTot],   valfrow_xf)
+7336  0                          ws.write(startRow + 6, it, rt.malTos2007[nTot],     valnrow_xf)
+7337  0                      else:
+7338  0                          ws.write(startRow + 1, it, rt.malTot2008[nTot],     valdrow_xf)
+7339  0                          ws.write(startRow + 2, it, rt.malTot2009[nTot],     valdrow_xf)
+7340  0                          ws.write(startRow + 3, it, rt.malcoeff[nTot],       valfrow_xf)
+7341  0                          ws.write(startRow + 4, it, rt.malTot2007[nTot],     valdrow_xf)
+7342  0                          ws.write(startRow + 5, it, rt.malRatio2007[nTot],   valfrow_xf)
+7343  0                          ws.write(startRow + 6, it, rt.malTos2007[nTot],     valdrow_xf)
+7344  0  
+7345  0                  it = it + 1
+7346  0              ws.write_merge(startRow, startRow, 1, it-1, namePok,headrow_xf)
+7347  0              #ws.col(1).width = 0x0d00 * 3
+7348  0              return startRow + 7
+7349  0  
+7350  0          def allTerrTotalTitle(self, ws, titleTab):
+7351  0              ws.write_merge(0,0, 2,8, titleTab, heading_xf)
+7352  0              ws.col(2).width = 0x0d00
+7353  0              #ws.write_merge(lineStart, lineFinish, columnStart, columnFinish, 'text', style)
+7354  0  
+7355  0              ws.write(2,0,"",headcol_xf)
+7356  0              ws.row(0).height = 0x0d00 + 50
+7357  0              ws.write(2,1,"Тип сводного показателя",headcol_xf)
+7358  0              ws.write(3,0,"A",headcol_xf)
+7359  0              ws.write(3,1,"B",headcol_xf)
+7360  0  
+7361  0              it = 2
+7362  0              for rt in self.aTerr:
+7363  0                  ToPrintLog(rt.nOkrug+ '|{0:4}|'.format(rt.OKATO))
+7364  0                  ws.write(2,it,rt.sTerr,headcol_xf)                                # Названия территорий
+7365  0                  ws.write(3,it,it-1,headcol_xf)
+7366  0                  ws.col(it).width = 0x0d00 + 50                                    # Ширина колонки с цифрами
+7367  0                  it = it + 1
+7368  0  
+7369  0          def allTerrCoeffmal (self, ws, npok):
+7370  0              nextRow = allTerrTotalCoeffmal(self, self.vMikro, ws, "Количество предприятий", 0, 4)
+7371  0              for i in range(1, len(npok)+1):
+7372  0                  nextRow  = allTerrTotalCoeffmal(self, self.vMikro, ws, npok[i-1][1], i, nextRow)
+7373  0  
+7374  0              ws.col(1).width = 0x0d00 * 3                            # Ширина колонки с названием показателя
+7375  0  #---
+7376  0  
+7377  0          wbl = Workbook(encoding='cp1251')
+7378  0          wsl = wbl.add_sheet('Итоги по малым')
+7379  0          self.vMikro = False
+7380  0          allTerrTotalTitle(self, wsl, \
+7381  0              """Меры итогов сводных показателей по выборке за январь - декабрь 2008 года, коэффициенты коррекции временных р
+            ядов и скорректированные значения итогов за 2007 год (без микропредприятий)"""
+7382  0              )
+7383  0          allTerrCoeffmal(self, wsl, self.malpok)
+7384  0  
+7385  0          wbl.save(dirTotal + "Скорректированные значения итогов за 2007 год для малых предприятий" + '.xls')                
+                         #---  Запись таблицы  Конец  ---
+7386  0          del wbl
+7387  0  
+7388  0          wbi = Workbook(encoding='cp1251')
+7389  0          wsi = wbi.add_sheet('Итоги по микропредприятиям')
+7390  0          self.vMikro = True
+7391  0          allTerrTotalTitle(self, wsi, \
+7392  0              """Меры итогов сводных показателей по выборке за январь - декабрь 2008 года, коэффициенты коррекции временных р
+            ядов и скорректированные значения итогов за 2007 год для микропредприятий"""
+7393  0              )
+7394  0          allTerrCoeffmal(self, wsi, self.micpok)
+7395  0  
+7396  0          wbi.save(dirTotal + "Скорректированные значения итогов за 2007 год для микропредприятий" + '.xls')                 
+                        #---  Запись таблицы  Конец  ---
+7397  0      #---  Запись таблиц Excel - Конец класса  ---
+7398  0  
+7399  0  #--- Global functions  ---
+7400  0  
+7401  0  def closeSPSSfiles():
+7402  0      spss.Submit(r"""
+7403  0      DATASET CLOSE ALL.
+7404  0      NEW FILE.
+7405  0      """)
+7406  0  
+7407  0  def missVal(d):
+7408  0      if type(d) is NoneType: d = 0
+7409  0      return d
+7410  0  
+7411  0  def ToPrintLog (sMess):
+7412  0      print str(datetime.now().strftime("%d.%m.%Y %H:%M:%S ")) + str(sMess)
+7413  0  
+7414  0  def ModifyTypeVesAll(TT):
+7415  0      """ Преобразование типа переменной ВЕС из строкового в числовой   """
+7416  0      ToPrintLog('Преобразование типа переменной ВЕС из строкового в числовой')
+7417  0      for rTerr in TT.aTerr:
+7418  0          #ToPrintLog(str(rTerr.OKATO)+str(rTerr.sTerr)+str(rTerr.nOkrug)+str(rTerr.sOkrug)+str(rTerr.malFile)+str(rTerr.micF
+            ile))
+7419  0          #ToPrintLog(str(rTerr.OKATO)+str(rTerr.sTerr))
+7420  0          #ToPrintLog("---  :: Малые и микро предприятия ::  ---")
+7421  0          spss.Submit(r"""
+7422  0          GET FILE = '%s'.
+7423  0          ALTER TYPE      ВЕС(F5.2).
+7424  0          VARIABLE LEVEL  ВЕС(SCALE).
+7425  0          FORMATS         ВЕС(F5.2).
+7426  0          EXECUTE.
+7427  0          SAVE /OUTFILE = '%s'.
+7428  0          DATASET CLOSE *.
+7429  0          GET FILE = '%s'.
+7430  0          ALTER TYPE      ВЕС(F5.2).
+7431  0          VARIABLE LEVEL  ВЕС(SCALE).
+7432  0          FORMATS         ВЕС(F5.2).
+7433  0          EXECUTE.
+7434  0          SAVE /OUTFILE = '%s'.
+7435  0          DATASET CLOSE *.
+7436  0          """ %(rTerr.malFile, rTerr.malFile, rTerr.micFile, rTerr.micFile))
+7437  0  
+7438  0  def FindFilesTerrAll():
+7439  0      """ Проверка на полноту файлов данных выборок по малым и микро и формирование массива объектов cTerr """
+7440  0      spss.Submit(r"""
+7441  0      DATASET CLOSE ALL.
+7442  0      GET FILE = '%s%s%s'.
+7443  0      DATASET NAME %s.
+7444  0      """ %(newDir, ListTOGS, sav, nameListTOGS))
+7445  0      TT = TTotal()
+7446  0      # Номер, Территория, Кодокруга, Федеральныйокруг, ОКАТО, Датаизменения, ПоДанным,
+7447  0      #   0         1          2            3             4           5          6
+7448  0  
+7449  0      with spss.DataStep():
+7450  0          # Таблица описаний ТОГС
+7451  0          # SpssClient.LogToViewer('Чтение таблицы описаний ТОГС.')
+7452  0          datasetListTOGS = spss.Dataset(name=nameListTOGS)
+7453  0          dt = datetime.now().strftime("%d.%m.%Y %H:%M:%S ")
+7454  0          #print dt, 'Склеивание имён файлов.'
+7455  0          sokato = '00'
+7456  0          os.chdir(dataDir)
+7457  0          j = 0
+7458  0          k = 0
+7459  0          for i in range(len(datasetListTOGS.cases)):
+7460  0             if datasetListTOGS.cases[i,4][0] <= 99:
+7461  0                sokato = "%02i" % datasetListTOGS.cases[i,4][0]
+7462  0                TT.rTerr.append( cTerr(datasetListTOGS.cases[i,4][0]
+7463  0                                       ,datasetListTOGS.cases[i,1][0]
+7464  0                                       ,datasetListTOGS.cases[i,2][0]
+7465  0                                       ,datasetListTOGS.cases[i,3][0]
+7466  0                                        )
+7467  0                                 )
+7468  0                ToPrintLog(TT.rTerr[k].OKATO + ' ' + TT.rTerr[k].sTerr + ' ' + TT.rTerr[k].nOkrug + ' ' + TT.rTerr[k].sOkrug)
+7469  0                k = k + 1
+7470  0                nfoMal2008 = sokato + mal + sav
+7471  0                nfoMic2008 = sokato + mic + sav
+7472  0                if os.access(nfoMal2008, os.F_OK):
+7473  0                    sMesFile = sMesFileYes
+7474  0                    TT.aTerr.append( cTerr(datasetListTOGS.cases[i,4][0]
+7475  0                                       ,datasetListTOGS.cases[i,1][0]
+7476  0                                       ,datasetListTOGS.cases[i,2][0]
+7477  0                                       ,datasetListTOGS.cases[i,3][0]
+7478  0                                        )
+7479  0                                 )
+7480  0                    print sMesFile, i+1, datasetListTOGS.cases[i,4][0], nfoMal2008, TT.aTerr[j].malFile
+7481  0                    j = j+1
+7482  0  
+7483  0                else:
+7484  0                    sMesFile = sMesFileNo
+7485  0                    #print sMesFile, i+1, datasetListTOGS.cases[i,4][0], nfoMal2008
+7486  0                datasetListTOGS.cases[i,6] = sMesFile +  nfoMal2008
+7487  0                datasetListTOGS.cases[i,5] = dt
+7488  0                #if j >= 2:                                          # Ограничение для отладки
+7489  0                #    break
+7490  0          ToPrintLog('Подготовка списка из '+str(j)+' территорий.')
+7491  0      spss.Submit(r"""
+7492  0      DATASET ACTIVATE %s.
+7493  0      SAVE OUTFILE = '%s%s%s'.
+7494  0      DATASET CLOSE *.
+7495  0      """ %(nameListTOGS, newDir, ListTOGS, sav))
+7496  0      os.chdir(newDir)
+7497  0      return TT
+7498  0  
+7499  0  ############################################################
+7500  0  
+7501  0  if __name__ == '__main__':
+7502  0      __name__ = 'TestStr'
+7503  0  
+7504  0  SpssClient.StartClient()
+7505  0  SpssClient.SetCurrentDirectory(newDir)
+7506  0  os.chdir(newDir)
+7507  0  print 'Текущая директория (Python): ', os.curdir, os.getcwd()
+7508  0  print 'Текущая директория (Spss  ): ', SpssClient.GetCurrentDirectory()
+7509  0  dt = datetime.now().strftime("%d.%m.%Y %H:%M:%S  ")
+7510  0  print (str(dt) + 'Старт головного модуля TestStr.')
+7511  0  
+7512  0  #NewOutputDoc = SpssClient.NewOutputDoc()
+7513  0  #NewOutputDoc.SetAsDesignatedOutputDoc()
+7514  0  NewOutputDoc = SpssClient.GetDesignatedOutputDoc()
+7515  0  SpssOutputUI = NewOutputDoc.GetOutputUI()
+7516  0  SpssOutputUI.SetVisible(True)
+7517  0  
+7518  0  spss.Submit(r"""
+7519  0  DATASET CLOSE ALL.
+7520  0  GET FILE = '%s%s%s'.
+7521  0  DATASET NAME %s.
+7522  0  """ %(newDir, ListTOGS, sav, nameListTOGS))
+7523  0  
+7524  0  TT = FindFilesTerrAll()
+7525  0  
+7526  0  #ModifyTypeVesAll(TT)
+7527  0  
+7528  0  t0 = time()
+7529  0  ToPrintLog("Start (Вычисление итогов): %s" % ctime(t0))
+7530  0  
+7531  0  TT.allTerr()            # Вычисление итогов
+7532  0  
+7533  0  t01 = time()
+7534  0  t1 = time() - t0
+7535  0  ToPrintLog("Прошло от начала (Вычисление итогов): %.2f сек." % (t1))
+7536  0  
+7537  0  TT.allTerrTotalToXLS()  # Запись таблиц Excel
+7538  0  
+7539  0  t2 = time() - t0
+7540  0  t21 = time() - t01
+7541  0  ToPrintLog("Прошло от начала (Запись таблиц Excel: %.2f сек.): %.2f сек." % (t21, t2))
+7542  0  
+7543  0  
+7544  0  # ---
+7545  0  closeSPSSfiles()
+7546  0  
+7547  0  SpssClient.StopClient()
+7548  0  
+Текущая директория (Python):  . e:\Tmp\Spss\Rows
+Текущая директория (Spss  ):  e:\Tmp\Spss\Rows
+28.07.2010 16:06:38  Старт головного модуля TestStr.
+28.07.2010 16:06:38 14 Белгородская область                       30 Центральный
+28.07.2010 16:06:38 15 Брянская область                           30 Центральный
+28.07.2010 16:06:38 17 Владимирская область                       30 Центральный
+28.07.2010 16:06:38 20 Воронежская область                        30 Центральный
+28.07.2010 16:06:38 24 Ивановская область                         30 Центральный
+28.07.2010 16:06:38 29 Калужская область                          30 Центральный
+28.07.2010 16:06:38 34 Костромская область                        30 Центральный
+28.07.2010 16:06:38 38 Курская область                            30 Центральный
+28.07.2010 16:06:38 42 Липецкая область                           30 Центральный
+28.07.2010 16:06:38 46 Московская область                         30 Центральный
+28.07.2010 16:06:38 54 Орловская область                          30 Центральный
+28.07.2010 16:06:38 61 Рязанская область                          30 Центральный
+28.07.2010 16:06:38 66 Смоленская область                         30 Центральный
+28.07.2010 16:06:38 68 Тамбовская область                         30 Центральный
+28.07.2010 16:06:38 28 Тверская область                           30 Центральный
+28.07.2010 16:06:38 70 Тульская область                           30 Центральный
+28.07.2010 16:06:38 78 Ярославская область                        30 Центральный
+28.07.2010 16:06:38 45 г. Москва                                  30 Центральный
+28.07.2010 16:06:38 86 Республика Карелия                         31 Северо-Западный
+Есть файл с данными :  19 86.0 86_ПМ.sav e:\Tmp\Spss\Rows\ObData\86_ПМ.sav
+28.07.2010 16:06:38 87 Республика Коми                            31 Северо-Западный
+Есть файл с данными :  20 87.0 87_ПМ.sav e:\Tmp\Spss\Rows\ObData\87_ПМ.sav
+28.07.2010 16:06:38 11 Архангельская область                      31 Северо-Западный
+Есть файл с данными :  21 11.0 11_ПМ.sav e:\Tmp\Spss\Rows\ObData\11_ПМ.sav
+28.07.2010 16:06:38 19 Вологодская область                        31 Северо-Западный
+Есть файл с данными :  23 19.0 19_ПМ.sav e:\Tmp\Spss\Rows\ObData\19_ПМ.sav
+28.07.2010 16:06:38 27 Калининградская область                    31 Северо-Западный
+Есть файл с данными :  24 27.0 27_ПМ.sav e:\Tmp\Spss\Rows\ObData\27_ПМ.sav
+28.07.2010 16:06:38 41 Ленинградская область                      31 Северо-Западный
+Есть файл с данными :  25 41.0 41_ПМ.sav e:\Tmp\Spss\Rows\ObData\41_ПМ.sav
+28.07.2010 16:06:38 47 Мурманская область                         31 Северо-Западный
+Есть файл с данными :  26 47.0 47_ПМ.sav e:\Tmp\Spss\Rows\ObData\47_ПМ.sav
+28.07.2010 16:06:38 49 Новгородская область                       31 Северо-Западный
+Есть файл с данными :  27 49.0 49_ПМ.sav e:\Tmp\Spss\Rows\ObData\49_ПМ.sav
+28.07.2010 16:06:38 57 Псковская область                          31 Северо-Западный
+28.07.2010 16:06:38 40 г. Санкт-Петербург                         31 Северо-Западный
+Есть файл с данными :  29 40.0 40_ПМ.sav e:\Tmp\Spss\Rows\ObData\40_ПМ.sav
+28.07.2010 16:06:38 79 Республика Адыгея                          32 Южный
+Есть файл с данными :  30 79.0 79_ПМ.sav e:\Tmp\Spss\Rows\ObData\79_ПМ.sav
+28.07.2010 16:06:38 82 Республика Дагестан                        32 Южный
+28.07.2010 16:06:38 26 Республика Ингушетия                       32 Южный
+28.07.2010 16:06:38 83 Кабардино-Балкарская республика            32 Южный
+28.07.2010 16:06:38 85 Республика Калмыкия                        32 Южный
+Есть файл с данными :  34 85.0 85_ПМ.sav e:\Tmp\Spss\Rows\ObData\85_ПМ.sav
+28.07.2010 16:06:38 91 Карачаево-Черкесская республика            32 Южный
+28.07.2010 16:06:38 90 Республика Северная Осетия-Алания          32 Южный
+28.07.2010 16:06:38 96 Чеченская Республика                       32 Южный
+28.07.2010 16:06:38 03 Краснодарский край                         32 Южный
+Есть файл с данными :  38 3.0 03_ПМ.sav e:\Tmp\Spss\Rows\ObData\03_ПМ.sav
+28.07.2010 16:06:38 07 Ставропольский край                        32 Южный
+28.07.2010 16:06:38 12 Астраханская область                       32 Южный
+Есть файл с данными :  40 12.0 12_ПМ.sav e:\Tmp\Spss\Rows\ObData\12_ПМ.sav
+28.07.2010 16:06:38 18 Волгоградская область                      32 Южный
+Есть файл с данными :  41 18.0 18_ПМ.sav e:\Tmp\Spss\Rows\ObData\18_ПМ.sav
+28.07.2010 16:06:38 60 Ростовская область                         32 Южный
+Есть файл с данными :  42 60.0 60_ПМ.sav e:\Tmp\Spss\Rows\ObData\60_ПМ.sav
+28.07.2010 16:06:38 80 Республика Башкортостан                    33 Приволжский
+28.07.2010 16:06:38 88 Республика Марий Эл                        33 Приволжский
+28.07.2010 16:06:38 89 Республика Мордовия                        33 Приволжский
+28.07.2010 16:06:38 92 Республика Татарстан                       33 Приволжский
+28.07.2010 16:06:38 94 Удмуртская Республика                      33 Приволжский
+28.07.2010 16:06:38 97 Чувашская Республика                       33 Приволжский
+28.07.2010 16:06:38 57 Пермский край                              33 Приволжский
+28.07.2010 16:06:38 33 Кировская область                          33 Приволжский
+28.07.2010 16:06:38 22 Нижегородская область                      33 Приволжский
+28.07.2010 16:06:38 53 Оренбургская область                       33 Приволжский
+28.07.2010 16:06:38 56 Пензенская область                         33 Приволжский
+28.07.2010 16:06:38 36 Самарская область                          33 Приволжский
+28.07.2010 16:06:38 63 Саратовская область                        33 Приволжский
+28.07.2010 16:06:38 73 Ульяновская область                        33 Приволжский
+28.07.2010 16:06:38 37 Курганская область                         34 Уральский
+28.07.2010 16:06:38 65 Свердловская область                       34 Уральский
+28.07.2010 16:06:38 71 Тюменская область                          34 Уральский
+28.07.2010 16:06:38 75 Челябинская область                        34 Уральский
+28.07.2010 16:06:38 84 Республика Алтай                           35 Сибирский
+28.07.2010 16:06:38 81 Республика Бурятия                         35 Сибирский
+28.07.2010 16:06:38 93 Республика Тыва                            35 Сибирский
+28.07.2010 16:06:38 95 Республика Хакасия                         35 Сибирский
+28.07.2010 16:06:38 01 Алтайский край                             35 Сибирский
+28.07.2010 16:06:38 67 Забайкальский край                         35 Сибирский
+28.07.2010 16:06:38 04 Красноярский край                          35 Сибирский
+28.07.2010 16:06:38 25 Иркутская область                          35 Сибирский
+28.07.2010 16:06:38 32 Кемеровская область                        35 Сибирский
+28.07.2010 16:06:38 50 Новосибирская область                      35 Сибирский
+28.07.2010 16:06:38 52 Омская область                             35 Сибирский
+28.07.2010 16:06:38 69 Томская область                            35 Сибирский
+28.07.2010 16:06:38 98 Республика Саха (Якутия)                   36 Дальневосточный
+28.07.2010 16:06:38 30 Камчатский край                            36 Дальневосточный
+28.07.2010 16:06:38 05 Приморский край                            36 Дальневосточный
+28.07.2010 16:06:38 08 Хабаровский край                           36 Дальневосточный
+28.07.2010 16:06:38 10 Амурская область                           36 Дальневосточный
+28.07.2010 16:06:38 44 Магаданская область                        36 Дальневосточный
+28.07.2010 16:06:38 64 Сахалинская область                        36 Дальневосточный
+28.07.2010 16:06:38 99 Еврейская автономная область               36 Дальневосточный
+28.07.2010 16:06:38 77 Чукотский автономный округ                 36 Дальневосточный
+28.07.2010 16:06:38 Подготовка списка из 15 территорий.
+28.07.2010 16:06:38 Start (Вычисление итогов): Wed Jul 28 16:06:38 2010
+28.07.2010 16:06:38     Малые : Вычисление коэффициентов по территориям
+28.07.2010 16:06:38 Окр.    |ОКАТ|Наблюде|Корр Наблюде| Предприятий  | Численность
+28.07.2010 16:06:52 312008ма|86  |      0|         870|         1320 |        24587
+28.07.2010 16:06:52    2009 малые        |         866|         1316 |        24114
+28.07.2010 16:06:52    Коэффициент малые |      0.9954|       0.9970 |       0.9808
+28.07.2010 16:06:52 312008ми|86  |      0|        1196|         3858 |        11234
+28.07.2010 16:06:52    2009 микро        |        1112|         3774 |         8738
+28.07.2010 16:06:52    Коэффициент микро |      0.9298|       0.9782 |       0.7778
+28.07.2010 16:07:14 312008ма|87  |      0|        2138|         2138 |        50604
+28.07.2010 16:07:14    2009 малые        |        2123|         2123 |        48682
+28.07.2010 16:07:14    Коэффициент малые |      0.9930|       0.9930 |       0.9620
+28.07.2010 16:07:14 312008ми|87  |      0|        1314|         5285 |        26234
+28.07.2010 16:07:14    2009 микро        |        1192|         5163 |        22449
+28.07.2010 16:07:14    Коэффициент микро |      0.9072|       0.9769 |       0.8557
+28.07.2010 16:07:35 312008ма|11  |      0|        1416|         2330 |        55503
+28.07.2010 16:07:35    2009 малые        |        1411|         2323 |        54800
+28.07.2010 16:07:35    Коэффициент малые |      0.9965|       0.9972 |       0.9873
+28.07.2010 16:07:35 312008ми|11  |      0|        1722|         6238 |        14344
+28.07.2010 16:07:35    2009 микро        |        1673|         6189 |        13085
+28.07.2010 16:07:35    Коэффициент микро |      0.9715|       0.9921 |       0.9122
+28.07.2010 16:07:44 312008ма|19  |      0|         772|         2895 |        79730
+28.07.2010 16:07:44    2009 малые        |         763|         2836 |        71655
+28.07.2010 16:07:44    Коэффициент малые |      0.9883|       0.9798 |       0.8987
+28.07.2010 16:07:44 312008ми|19  |      0|         619|         2244 |        13171
+28.07.2010 16:07:44    2009 микро        |         537|         2111 |         9143
+28.07.2010 16:07:44    Коэффициент микро |      0.8675|       0.9408 |       0.6942
+28.07.2010 16:08:17 312008ма|27  |      0|        1420|         2158 |        47542
+28.07.2010 16:08:17    2009 малые        |        1408|         2144 |        45439
+28.07.2010 16:08:17    Коэффициент малые |      0.9915|       0.9936 |       0.9558
+28.07.2010 16:08:17 312008ми|27  |      0|        3764|        18690 |        16907
+28.07.2010 16:08:17    2009 микро        |        3729|        18655 |        15881
+28.07.2010 16:08:17    Коэффициент микро |      0.9907|       0.9981 |       0.9393
+28.07.2010 16:08:32 312008ма|41  |      0|         761|         3005 |        64101
+28.07.2010 16:08:32    2009 малые        |         743|         2987 |        61686
+28.07.2010 16:08:32    Коэффициент малые |      0.9763|       0.9940 |       0.9623
+28.07.2010 16:08:32 312008ми|41  |      0|        1591|        11236 |        20101
+28.07.2010 16:08:32    2009 микро        |        1480|        11125 |        16655
+28.07.2010 16:08:32    Коэффициент микро |      0.9302|       0.9901 |       0.8286
+28.07.2010 16:08:40 312008ма|47  |      0|         499|         2098 |        30102
+28.07.2010 16:08:40    2009 малые        |         496|         2089 |        29011
+28.07.2010 16:08:40    Коэффициент малые |      0.9940|       0.9957 |       0.9638
+28.07.2010 16:08:40 312008ми|47  |      0|         727|         3992 |        13474
+28.07.2010 16:08:40    2009 микро        |         670|         3889 |        10592
+28.07.2010 16:08:40    Коэффициент микро |      0.9216|       0.9742 |       0.7861
+28.07.2010 16:08:50 312008ма|49  |      0|         760|         1672 |        44561
+28.07.2010 16:08:50    2009 малые        |         754|         1662 |        43489
+28.07.2010 16:08:50    Коэффициент малые |      0.9921|       0.9939 |       0.9759
+28.07.2010 16:08:50 312008ми|49  |      0|         676|         3505 |        11927
+28.07.2010 16:08:50    2009 микро        |         639|         3393 |         9141
+28.07.2010 16:08:50    Коэффициент микро |      0.9453|       0.9679 |       0.7664
+28.07.2010 16:09:56 312008ма|40  |      0|        2454|        25500 |       426558
+28.07.2010 16:09:56    2009 малые        |        2388|        25434 |       417345
+28.07.2010 16:09:56    Коэффициент малые |      0.9731|       0.9974 |       0.9784
+28.07.2010 16:09:56 312008ми|40  |      0|        7967|       109213 |        87604
+28.07.2010 16:09:56    2009 микро        |        7835|       109062 |        84208
+28.07.2010 16:09:56    Коэффициент микро |      0.9834|       0.9986 |       0.9612
+28.07.2010 16:10:15 322008ма|79  |      0|         519|          519 |        13761
+28.07.2010 16:10:15    2009 малые        |         517|          517 |        13537
+28.07.2010 16:10:15    Коэффициент малые |      0.9961|       0.9961 |       0.9837
+28.07.2010 16:10:15 322008ми|79  |      0|        2464|         2464 |         8936
+28.07.2010 16:10:15    2009 микро        |        2418|         2418 |         7786
+28.07.2010 16:10:15    Коэффициент микро |      0.9813|       0.9813 |       0.8713
+28.07.2010 16:10:19 322008ма|85  |      0|         222|          222 |         4688
+28.07.2010 16:10:19    2009 малые        |         221|          221 |         4578
+28.07.2010 16:10:19    Коэффициент малые |      0.9955|       0.9955 |       0.9765
+28.07.2010 16:10:19 322008ми|85  |      0|         373|          373 |         1754
+28.07.2010 16:10:19    2009 микро        |         364|          364 |         1558
+28.07.2010 16:10:19    Коэффициент микро |      0.9759|       0.9759 |       0.8883
+28.07.2010 16:11:08 322008ма|03  |      0|        2326|        12639 |       201963
+28.07.2010 16:11:08    2009 малые        |        2309|        12593 |       196184
+28.07.2010 16:11:08    Коэффициент малые |      0.9927|       0.9964 |       0.9714
+28.07.2010 16:11:08 322008ми|03  |      0|        5369|        33461 |       113679
+28.07.2010 16:11:08    2009 микро        |        5139|        33231 |       107800
+28.07.2010 16:11:08    Коэффициент микро |      0.9572|       0.9931 |       0.9483
+28.07.2010 16:11:23 322008ма|12  |      0|        1487|         1487 |        45594
+28.07.2010 16:11:23    2009 малые        |        1473|         1473 |        43523
+28.07.2010 16:11:23    Коэффициент малые |      0.9906|       0.9906 |       0.9546
+28.07.2010 16:11:23 322008ми|12  |      0|         890|         5830 |        22567
+28.07.2010 16:11:23    2009 микро        |         860|         5702 |        19531
+28.07.2010 16:11:23    Коэффициент микро |      0.9663|       0.9780 |       0.8655
+28.07.2010 16:11:45 322008ма|18  |      0|        1646|        13632 |       347156
+28.07.2010 16:11:45    2009 малые        |        1626|        13601 |       342114
+28.07.2010 16:11:45    Коэффициент малые |      0.9878|       0.9977 |       0.9855
+28.07.2010 16:11:45 322008ми|18  |      0|        1499|        11586 |        75818
+28.07.2010 16:11:45    2009 микро        |        1371|        10679 |        41270
+28.07.2010 16:11:45    Коэффициент микро |      0.9146|       0.9217 |       0.5443
+28.07.2010 16:12:15 322008ма|60  |      0|        2208|        12460 |       240963
+28.07.2010 16:12:15    2009 малые        |        2186|        12312 |       223116
+28.07.2010 16:12:15    Коэффициент малые |      0.9900|       0.9881 |       0.9259
+28.07.2010 16:12:15 322008ми|60  |      0|        2511|        24697 |        66549
+28.07.2010 16:12:15    2009 микро        |        2390|        24367 |        58833
+28.07.2010 16:12:15    Коэффициент микро |      0.9518|       0.9867 |       0.8840
+28.07.2010 16:12:15 Найден файл итогов tab_33(01-09)_list1.xls
+28.07.2010 16:12:15 Найдена: Республика Карелия 36176.0
+28.07.2010 16:12:15 Найдена: Республика Коми 72589.0
+28.07.2010 16:12:15 Найдена: Архангельская область 73938.0
+28.07.2010 16:12:15 Найдена: Вологодская область 71775.0
+28.07.2010 16:12:15 Найдена: Калининградская область 138015.0
+28.07.2010 16:12:15 Найдена: Ленинградская область 166690.0
+28.07.2010 16:12:15 Найдена: Мурманская область 33936.0
+28.07.2010 16:12:15 Найдена: Новгородская область 28526.0
+28.07.2010 16:12:15 Найдена: г. Санкт-Петербург 707493.0
+28.07.2010 16:12:15 Найдена: Республика Адыгея 16601.0
+28.07.2010 16:12:15 Найдена: Республика Калмыкия 3619.0
+28.07.2010 16:12:15 Найдена: Краснодарский край 320043.0
+28.07.2010 16:12:15 Найдена: Астраханская область 61021.0
+28.07.2010 16:12:15 Найдена: Волгоградская область 123169.0
+28.07.2010 16:12:15 Найдена: Ростовская область 225892.0
+28.07.2010 16:12:15 Найден файл итогов tab_33(12)_list1.xls
+28.07.2010 16:12:15 Найдена: Республика Карелия 71027005.2
+28.07.2010 16:12:15 Найдена: Республика Коми 84867894.3
+28.07.2010 16:12:15 Найдена: Архангельская область 71858060.6
+28.07.2010 16:12:15 Найдена: Вологодская область 82115661.2
+28.07.2010 16:12:15 Найдена: Калининградская область 242868719.0
+28.07.2010 16:12:15 Найдена: Ленинградская область 103518669.3
+28.07.2010 16:12:15 Найдена: Мурманская область 69273158.1
+28.07.2010 16:12:15 Найдена: Новгородская область 31974902.7
+28.07.2010 16:12:15 Найдена: г. Санкт-Петербург 932832665.1
+28.07.2010 16:12:15 Найдена: Республика Адыгея 14696012.5
+28.07.2010 16:12:15 Найдена: Республика Калмыкия 1907944.9
+28.07.2010 16:12:15 Найдена: Краснодарский край 447454627.5
+28.07.2010 16:12:15 Найдена: Астраханская область 46311062.6
+28.07.2010 16:12:15 Найдена: Волгоградская область 158413532.3
+28.07.2010 16:12:15 Найдена: Ростовская область 487755241.8
+28.07.2010 16:12:15 Найден файл итогов tab_33(13)_list1.xls
+28.07.2010 16:12:15 Найдена: Республика Карелия 449381.9
+28.07.2010 16:12:15 Найдена: Республика Коми 6080206.8
+28.07.2010 16:12:15 Найдена: Архангельская область 1278286.5
+28.07.2010 16:12:15 Найдена: Вологодская область 2326474.1
+28.07.2010 16:12:15 Найдена: Калининградская область 4533038.7
+28.07.2010 16:12:15 Найдена: Ленинградская область 1451095.5
+28.07.2010 16:12:15 Найдена: Мурманская область 278714.4
+28.07.2010 16:12:15 Найдена: Новгородская область 367647.3
+28.07.2010 16:12:15 Найдена: г. Санкт-Петербург 3650828.3
+28.07.2010 16:12:15 Найдена: Республика Адыгея 318008.2
+28.07.2010 16:12:15 Найдена: Республика Калмыкия 4423.2
+28.07.2010 16:12:15 Найдена: Краснодарский край 21299196.0
+28.07.2010 16:12:15 Найдена: Астраханская область 1876517.9
+28.07.2010 16:12:15 Найдена: Волгоградская область 3431259.9
+28.07.2010 16:12:15 Найдена: Ростовская область 16338304.0
+28.07.2010 16:12:15 Найден файл итогов tab_33(o)_list1.xls
+28.07.2010 16:12:15 Найдена: Республика Карелия 69157829.5
+28.07.2010 16:12:15 Найдена: Республика Коми 84260638.3
+28.07.2010 16:12:15 Найдена: Архангельская область 69681791.7
+28.07.2010 16:12:15 Найдена: Вологодская область 79614325.8
+28.07.2010 16:12:15 Найдена: Калининградская область 278348985.0
+28.07.2010 16:12:15 Найдена: Ленинградская область 102514143.0
+28.07.2010 16:12:15 Найдена: Мурманская область 68751197.7
+28.07.2010 16:12:15 Найдена: Новгородская область 31100996.6
+28.07.2010 16:12:15 Найдена: г. Санкт-Петербург 927792964.8
+28.07.2010 16:12:15 Найдена: Республика Адыгея 14648830.8
+28.07.2010 16:12:15 Найдена: Республика Калмыкия 1949066.2
+28.07.2010 16:12:15 Найдена: Краснодарский край 458631685.6
+28.07.2010 16:12:15 Найдена: Астраханская область 45664726.5
+28.07.2010 16:12:15 Найдена: Волгоградская область 156842942.8
+28.07.2010 16:12:15 Найдена: Ростовская область 483690427.5
+28.07.2010 16:12:15 Найден файл итогов tab_33(06)_list1.xls
+28.07.2010 16:12:15 Найдена: Республика Карелия 13113629.8
+28.07.2010 16:12:15 Найдена: Республика Коми 45133658.6
+28.07.2010 16:12:15 Найдена: Архангельская область 23311113.8
+28.07.2010 16:12:15 Найдена: Вологодская область 30404455.1
+28.07.2010 16:12:15 Найдена: Калининградская область 60149485.6
+28.07.2010 16:12:15 Найдена: Ленинградская область 62539270.7
+28.07.2010 16:12:15 Найдена: Мурманская область 20342529.6
+28.07.2010 16:12:15 Найдена: Новгородская область 13531187.0
+28.07.2010 16:12:15 Найдена: г. Санкт-Петербург 282016473.2
+28.07.2010 16:12:15 Найдена: Республика Адыгея 5410134.2
+28.07.2010 16:12:15 Найдена: Республика Калмыкия 1066992.1
+28.07.2010 16:12:15 Найдена: Краснодарский край 139215861.0
+28.07.2010 16:12:15 Найдена: Астраханская область 20723866.6
+28.07.2010 16:12:15 Найдена: Волгоградская область 43485524.9
+28.07.2010 16:12:15 Найдена: Ростовская область 109125812.7
+28.07.2010 16:12:15 Найден файл итогов tab_33(07)_list1.xls
+28.07.2010 16:12:15 Найдена: Республика Карелия 56044199.7
+28.07.2010 16:12:15 Найдена: Республика Коми 39126979.7
+28.07.2010 16:12:15 Найдена: Архангельская область 46370677.9
+28.07.2010 16:12:15 Найдена: Вологодская область 49209870.7
+28.07.2010 16:12:15 Найдена: Калининградская область 218199499.4
+28.07.2010 16:12:15 Найдена: Ленинградская область 39974872.3
+28.07.2010 16:12:15 Найдена: Мурманская область 48408668.1
+28.07.2010 16:12:15 Найдена: Новгородская область 17569809.6
+28.07.2010 16:12:15 Найдена: г. Санкт-Петербург 645776491.6
+28.07.2010 16:12:15 Найдена: Республика Адыгея 9238696.6
+28.07.2010 16:12:15 Найдена: Республика Калмыкия 882074.1
+28.07.2010 16:12:15 Найдена: Краснодарский край 319415824.6
+28.07.2010 16:12:15 Найдена: Астраханская область 24940859.9
+28.07.2010 16:12:15 Найдена: Волгоградская область 113357417.9
+28.07.2010 16:12:15 Найдена: Ростовская область 374564614.8
+28.07.2010 16:12:15 Найден файл итогов tab_33(02-09)_list1.xls
+28.07.2010 16:12:16 Найдена: Республика Карелия 32808.0
+28.07.2010 16:12:16 Найдена: Республика Коми 62136.0
+28.07.2010 16:12:16 Найдена: Архангельская область 65368.0
+28.07.2010 16:12:16 Найдена: Вологодская область 65021.0
+28.07.2010 16:12:16 Найдена: Калининградская область 129352.0
+28.07.2010 16:12:16 Найдена: Ленинградская область 143119.0
+28.07.2010 16:12:16 Найдена: Мурманская область 29913.0
+28.07.2010 16:12:16 Найдена: Новгородская область 26160.0
+28.07.2010 16:12:16 Найдена: г. Санкт-Петербург 628302.0
+28.07.2010 16:12:16 Найдена: Республика Адыгея 14855.0
+28.07.2010 16:12:16 Найдена: Республика Калмыкия 3164.0
+28.07.2010 16:12:16 Найдена: Краснодарский край 286590.0
+28.07.2010 16:12:16 Найдена: Астраханская область 54517.0
+28.07.2010 16:12:16 Найдена: Волгоградская область 110895.0
+28.07.2010 16:12:16 Найдена: Ростовская область 201384.0
+28.07.2010 16:12:16 Найден файл итогов tab_33(03-11)_list1.xls
+28.07.2010 16:12:16 Найдена: Республика Карелия 141241.8
+28.07.2010 16:12:16 Найдена: Республика Коми 401636.8
+28.07.2010 16:12:16 Найдена: Архангельская область 486784.9
+28.07.2010 16:12:16 Найдена: Вологодская область 448627.5
+28.07.2010 16:12:16 Найдена: Калининградская область 598719.6
+28.07.2010 16:12:16 Найдена: Ленинградская область 1888531.5
+28.07.2010 16:12:16 Найдена: Мурманская область 185336.6
+28.07.2010 16:12:16 Найдена: Новгородская область 131053.6
+28.07.2010 16:12:16 Найдена: г. Санкт-Петербург 6374881.4
+28.07.2010 16:12:16 Найдена: Республика Адыгея 48667.5
+28.07.2010 16:12:16 Найдена: Республика Калмыкия 8027.1
+28.07.2010 16:12:16 Найдена: Краснодарский край 2129704.4
+28.07.2010 16:12:16 Найдена: Астраханская область 255522.1
+28.07.2010 16:12:16 Найдена: Волгоградская область 497182.9
+28.07.2010 16:12:16 Найдена: Ростовская область 1281142.5
+28.07.2010 16:12:16 Найден файл итогов tab_33(01-11)_list1.xls
+28.07.2010 16:12:16 Найдена: Республика Карелия 3757466.7
+28.07.2010 16:12:16 Найдена: Республика Коми 8790743.4
+28.07.2010 16:12:16 Найдена: Архангельская область 7275573.9
+28.07.2010 16:12:16 Найдена: Вологодская область 7486397.9
+28.07.2010 16:12:16 Найдена: Калининградская область 17671077.1
+28.07.2010 16:12:16 Найдена: Ленинградская область 16566965.9
+28.07.2010 16:12:16 Найдена: Мурманская область 4566931.0
+28.07.2010 16:12:16 Найдена: Новгородская область 2449679.0
+28.07.2010 16:12:16 Найдена: г. Санкт-Петербург 97175397.7
+28.07.2010 16:12:16 Найдена: Республика Адыгея 938952.7
+28.07.2010 16:12:16 Найдена: Республика Калмыкия 164032.0
+28.07.2010 16:12:16 Найдена: Краснодарский край 27329487.9
+28.07.2010 16:12:16 Найдена: Астраханская область 4281160.7
+28.07.2010 16:12:16 Найдена: Волгоградская область 9397407.2
+28.07.2010 16:12:16 Найдена: Ростовская область 17949472.2
+28.07.2010 16:12:16 Найден файл итогов tab_33(02-11)_list1.xls
+28.07.2010 16:12:16 Найдена: Республика Карелия 3512229.4
+28.07.2010 16:12:16 Найдена: Республика Коми 7765361.8
+28.07.2010 16:12:16 Найдена: Архангельская область 6607500.9
+28.07.2010 16:12:16 Найдена: Вологодская область 6756003.1
+28.07.2010 16:12:16 Найдена: Калининградская область 16936731.1
+28.07.2010 16:12:16 Найдена: Ленинградская область 14289141.3
+28.07.2010 16:12:16 Найдена: Мурманская область 4111585.6
+28.07.2010 16:12:16 Найдена: Новгородская область 2286913.0
+28.07.2010 16:12:16 Найдена: г. Санкт-Петербург 88682559.1
+28.07.2010 16:12:16 Найдена: Республика Адыгея 864900.5
+28.07.2010 16:12:16 Найдена: Республика Калмыкия 145592.7
+28.07.2010 16:12:16 Найдена: Краснодарский край 24561547.3
+28.07.2010 16:12:16 Найдена: Астраханская область 3898238.4
+28.07.2010 16:12:16 Найдена: Волгоградская область 8754625.8
+28.07.2010 16:12:16 Найдена: Ростовская область 16302793.9
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.53536542075
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.245785569432
+28.07.2010 16:12:16 Найден файл долей для  86 Республика Карелия 0.354114434097
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.512726937018
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.370975010277
+28.07.2010 16:12:16 Найден файл долей для  87 Республика Коми 0.350386654134
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.591267233148
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.325249422755
+28.07.2010 16:12:16 Найден файл долей для  11 Архангельская область 0.340104180272
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.541931592388
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.259676459307
+28.07.2010 16:12:16 Найден файл долей для  19 Вологодская область 0.275256432296
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.614625580819
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.286342631401
+28.07.2010 16:12:16 Найден файл долей для  27 Калининградская область 0.399311556773
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.508313273151
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.513524740981
+28.07.2010 16:12:16 Найден файл долей для  41 Ленинградская область 0.56984836514
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.534087651989
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.155718668961
+28.07.2010 16:12:16 Найден файл долей для  47 Мурманская область 0.285400822108
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.406853375027
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.275696631427
+28.07.2010 16:12:16 Найден файл долей для  49 Новгородская область 0.286560626862
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.711295832475
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.385457440768
+28.07.2010 16:12:16 Найден файл долей для  40 г. Санкт-Петербург 0.429653391037
+28.07.2010 16:12:16 Не найден!! файл долей для 79 Республика Адыгея
+28.07.2010 16:12:16 Не найден!! файл долей для 85 Республика Калмыкия
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.499656197964
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.273348634187
+28.07.2010 16:12:16 Найден файл долей для  03 Краснодарский край 0.420390007369
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.632451257114
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.279795149123
+28.07.2010 16:12:16 Найден файл долей для  12 Астраханская область 0.319821279353
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.57708537243
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.238651936512
+28.07.2010 16:12:16 Найден файл долей для  18 Волгоградская область 0.312668736601
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: продано товаров несобственного производства- 0.528704563631
+28.07.2010 16:12:16 Найдена доля -Микропредприятия: отгружено товаров собственного производства, выполнено работ и услуг собственными силами- 0.266524774841
+28.07.2010 16:12:16 Найден файл долей для  60 Ростовская область 0.362646786138
+28.07.2010 16:12:16 Прошло от начала (Вычисление итогов): 337.57 сек.
+28.07.2010 16:12:16 Экспорт итогов по территориям в Excel
+28.07.2010 16:12:16 31|86  |
+28.07.2010 16:12:16 31|87  |
+28.07.2010 16:12:16 31|11  |
+28.07.2010 16:12:16 31|19  |
+28.07.2010 16:12:16 31|27  |
+28.07.2010 16:12:16 31|41  |
+28.07.2010 16:12:16 31|47  |
+28.07.2010 16:12:16 31|49  |
+28.07.2010 16:12:16 31|40  |
+28.07.2010 16:12:16 32|79  |
+28.07.2010 16:12:16 32|85  |
+28.07.2010 16:12:16 32|03  |
+28.07.2010 16:12:16 32|12  |
+28.07.2010 16:12:16 32|18  |
+28.07.2010 16:12:16 32|60  |
+28.07.2010 16:12:16 31|86  |
+28.07.2010 16:12:16 31|87  |
+28.07.2010 16:12:16 31|11  |
+28.07.2010 16:12:16 31|19  |
+28.07.2010 16:12:16 31|27  |
+28.07.2010 16:12:16 31|41  |
+28.07.2010 16:12:16 31|47  |
+28.07.2010 16:12:16 31|49  |
+28.07.2010 16:12:16 31|40  |
+28.07.2010 16:12:16 32|79  |
+28.07.2010 16:12:16 32|85  |
+28.07.2010 16:12:16 32|03  |
+28.07.2010 16:12:16 32|12  |
+28.07.2010 16:12:16 32|18  |
+28.07.2010 16:12:16 32|60  |
+28.07.2010 16:12:16 Прошло от начала (Запись таблиц Excel: 0.05 сек.): 337.62 сек.
+7717  0  
+7718  0  * End of INSERT and INCLUDE nesting level 01.
