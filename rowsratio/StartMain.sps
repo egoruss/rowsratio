@@ -1,4 +1,4 @@
-insert FILE =  "e:\Tmp\Spss\Rows\RowsRatio.py"
+insert FILE =  "e:\Tmp\Spss\rowsratio\\RowsRatio.py"
        SYNTAX=INTERACTIVE 
        ERROR=CONTINUE 
        CD=YES.

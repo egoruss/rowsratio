@@ -1,1 +1,1 @@
-svn import e:/Tmp/Spss/Rows https://rowsratio.googlecode.com/svn/trunk/ rowsratio --username egoruss -m "initial import"
+svn import e:/Tmp/Spss/Rows https://rowsratio.googlecode.com/svn/trunk/rowsratio -m "initial import" --username egoruss --password Cp9pA6rx8jK3

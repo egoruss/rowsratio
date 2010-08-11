@@ -10,7 +10,7 @@
 * Последняя модификация: 25 мая 2010, Сергей Степанов
 ***************************************************************************
 
-DEFINE @WORKDIR () 		'e:\Tmp\Spss\Rows' 	!ENDDEFINE.
+DEFINE @WORKDIR () 		'e:\Tmp\Spss\rowsratio\' 	!ENDDEFINE.
 DEFINE @SAMPLEMAL () 	 	'mal'		!ENDDEFINE.
 DEFINE @SAMPLEMICRO ()  	micro		!ENDDEFINE.
 DEFINE @Y2007 ()  		2007		!ENDDEFINE.
