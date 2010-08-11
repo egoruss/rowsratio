@@ -10,7 +10,7 @@
 * Последняя модификация: 15 июня 2010, Сергей Степанов. 
 ***************************************************************************
 
-DEFINE @WORKDIR () 		'e:\Tmp\Spss\Rows' 	!ENDDEFINE.
+DEFINE @WORKDIR () 		'e:\Tmp\Spss\rowsratio\' 	!ENDDEFINE.
 DEFINE @SAV ()  		'.sav'			!ENDDEFINE.
 DEFINE @ListTOGS ()  		'\ListTOGS'		!ENDDEFINE.
 
@@ -35,7 +35,7 @@ import SpssClient
 import spss 
 import os
 
-newDir         = 'e:\Tmp\Spss\Rows'
+newDir         = 'e:\Tmp\Spss\rowsratio\'
 nameListTOGS   = 'TOGS'
 sav            = '.sav'
 mal            = 'mal'

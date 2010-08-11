@@ -9,7 +9,7 @@ from time import *
 from types import *
 import xlrd
 
-_newDir         = 'e:\Tmp\Spss\Rows'
+_newDir         = 'e:\Tmp\Spss\rowsratio\'
 
 #os.chdir(_newDir)
 
