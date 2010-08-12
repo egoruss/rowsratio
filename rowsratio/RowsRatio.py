@@ -14,6 +14,9 @@ BEGIN PROGRAM PYTHON.
 #         + Разделение итогов 2007 по долям.
 #         + Скорректированные значения по малым и микро.
 #         + Доли по трём группам показателей.
+#         + Парсинг схемы сборки ОКВЭД
+#         + Парсинг разрезов по ОКВЭД (из долей, сводных таблиц 2009 года или 2007)
+#         - Ускорение подсчёта итогов по разрезам ОКВЭД
 #         
 ########################################
 #       11.08.2010 23:17:47
@@ -28,12 +31,12 @@ import spss
 from xlwt import *
 import xlrd
 
-newDir         = 'e:\Tmp\Spss\Rows'
+newDir         = 'e:\\Tmp\\Spss\\rowsratio'
 dataDir        = newDir + '\ObData'
-totalDir       = '\Total'
-totalDir2007   = newDir + '\своды ПМ 2007\\'
+totalDir       = '\\Total'
+totalDir2007   = newDir + '\\своды ПМ 2007\\'
 ratioDir       = newDir + '\Ratio\\'
-ListTOGS       = '\ListTOGS'
+ListTOGS       = '\\ListTOGS'
 nameListTOGS   = 'TOGS'
 sav            = '.sav'
 mal            = '_ПМ'
@@ -141,24 +144,41 @@ class cTerr(object):
         GET FILE = '%s'. 
         DATASET NAME %s.
         """ %(mFile, self.nameDataSet))
+
+        stime = time()
+        ToPrintLog('Чтение Cursor пообъектных данных из '+ mFile)
+
+        nump=[num[0] for num in npok]
+        nump.insert(0,numves)
+        dataCursor=spss.Cursor(nump)
+        data=dataCursor.fetchall()
+        dataCursor.close()
+
+        etime = time() - stime
+        ToPrintLog('Время чтения Cursor пообъектных данных из '+ mFile + ' : %.2f сек.' % (etime))
+        print data
+        
         with spss.DataStep():
             # По наблюдениям выборки
             dmal = spss.Dataset(name=self.nameDataSet)
             self.malknab = 0
-            rowval = []
-            stime = time()
-            ToPrintLog('Чтение пообъектных данных из '+ mFile)
-            for i in range(len(dmal.cases)):
-                if missVal(dmal.cases[i,0][0]) <> 0 and missVal(dmal.cases[i,numves][0]) <> 0:         # По ненулевым ОКПО и ненулевым весам
-                    print 'Номер,ОКПО, Вес ', i, missVal(dmal.cases[i,0][0]), missVal(dmal.cases[i,numves][0])
-                    rowval[i][0].append(missVal(dmal.cases[i,numves][0]))                # Вес предприятий
-                    for ip in range(1, len(Tot2008)-1):
-                        rowval[i][ip].append(missVal(dmal.cases[i, npok[ip-1][0]][0]))
-            etime = time() - stime
-            ToPrintLog('Время чтения пообъектных данных из '+ mFile + ' : %.2f сек.' % (etime))
-
-            stime = time()
-            ToPrintLog('Вычисление итогов прямо из SPSS-файла '+ mFile)
+#            rowval = []
+#            stime = time()
+#            ToPrintLog('Чтение пообъектных данных из '+ mFile)
+#            i = 0
+#            for row in dmal.cases:
+#                if missVal(row[0]) <> 0 and missVal(row[numves]) <> 0:         # По ненулевым ОКПО и ненулевым весам
+#                    print 'Номер,ОКПО, Вес ', i, missVal(row[0]), missVal(row[numves])
+#                    rowpok = [missVal(row[npok[k-1][0]]) for k in range(1,len(npok)+1)]
+#                    print rowpok
+#                    rowval.append(rowpok)
+#                    
+#                i += 1
+#            etime = time() - stime
+#            ToPrintLog('Время чтения пообъектных данных из '+ mFile + ' : %.2f сек.' % (etime))
+#            print rowval
+#            stime = time()
+#            ToPrintLog('Вычисление итогов прямо из SPSS-файла '+ mFile)
             for i in range(len(dmal.cases)):
                ves = missVal(dmal.cases[i,numves][0])                # Вес предприятий
                if missVal(dmal.cases[i,0][0]) <> 0 and ves <> 0:         # По ненулевым ОКПО и ненулевым весам
