@@ -1,29 +1,14 @@
 [Open Files]
 Active File Display Mode=3
-Active File Index=1
+Active File Index=0
 Open File Line0=0
-Open File Line1=1714
-Open File Line2=0
-Open File Line3=0
-Open File Pos0=444
-Open File Pos1=1714
-Open File Pos2=865
-Open File Pos3=351
-Open File Window Pos0=0,1,-1,-1,-9,-34,196,196,1128,607
-Open File Window Pos1=2,3,-1,-1,-9,-34,0,0,932,413
-Open File Window Pos2=0,1,-1,-1,-9,-34,112,112,988,649
-Open File Window Pos3=0,1,-1,-1,-9,-34,140,140,1016,677
-Open File0=.\TestOkved.py
-Open File1=.\OkvedAssemblyClass.py
-Open File2=.\ListOkvedClass.py
-Open File3=E:\Tmp\Spss\Rows\TestListOkved.py
-Open File4=
+Open File Pos0=0
+Open File Window Pos0=2,3,-1,-1,-9,-34,28,28,904,563
+Open File0=.\RowsRatio.py
+Open File1=
 Remember Files=1
 
 [Project Information]
-Project Start=DA070700040008000F0010000B0000001E
-Working Time=971119
+Project Start=DA07080003000B00160026002300000056
+Working Time=101
 
-[Folders]
-Data=1
-.\total2008\=1
