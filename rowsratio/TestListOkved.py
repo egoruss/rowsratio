@@ -9,7 +9,7 @@ from time import *
 from types import *
 import xlrd
 
-_newDir         = 'e:\Tmp\Spss\rowsratio\'
+_newDir         = 'e:\\Tmp\\Spss\\rowsratio\\'
 
 #os.chdir(_newDir)
 
@@ -19,4 +19,5 @@ def ToPrintLog (sMess):
 from ListOkvedClass import *
 
 LiO = ListOkved(ToPrintLog, _newDir)
-print 'ÎÊÂÝÄ 01 -> ', LiO.listOkvedmal['01']
+for re in LiO.listOkvedmal:
+    print re[0], re[1]
