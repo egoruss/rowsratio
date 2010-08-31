@@ -23,9 +23,9 @@ class OkvedAss(object):
 #                print 'rulesAssPlus', gr, listRet
             return listRet
             
-        #os.chdir(rulesDir)
+#        os.chdir(rulesDir)
         ToPrint('Инициализация Класса правил сборки ОКВЭД. ')
-        self.nameFileRules = '\okved_assembly .xls'
+        self.nameFileRules = '\\okved_assembly.xls'
         self.rulesAss = {}
         self.rulesAssPlus = {}
         if os.access(rulesDir + self.nameFileRules, os.F_OK):
@@ -45,9 +45,9 @@ class OkvedAss(object):
                     
 #                    print 'rulesAss', gr, strOk
                     self.rulesAssPlus[gr] = [] + insertGr(self, gr, strOk)             # Расширение группы
-#                    print 'Собран ', gr, self.rulesAssPlus[gr]
+                    print 'Собран ', gr, self.rulesAssPlus[gr]
         else:
-            ToPrint('Не найден!! файл правил сборки ОКВЭД ' + self.nameFileRules)
+            ToPrint('Не найден!! файл правил сборки ОКВЭД ' + rulesDir + self.nameFileRules)
         del self.rulesAss
 
 

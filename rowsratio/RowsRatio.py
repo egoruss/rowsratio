@@ -16,7 +16,7 @@ BEGIN PROGRAM PYTHON.
 #         + Доли по трём группам показателей.
 #         + Парсинг схемы сборки ОКВЭД
 #         + Парсинг разрезов по ОКВЭД (из долей, сводных таблиц 2009 года или 2007)
-#         - Ускорение подсчёта итогов по разрезам ОКВЭД
+#         + Ускорение подсчёта итогов по разрезам ОКВЭД
 #         
 ########################################
 #       11.08.2010 23:17:47
@@ -87,8 +87,8 @@ class cTerr(object):
         self.numvesmal   = 33           # Индекс веса у малых = номер переменной - 1
         self.malCHT      = 5            # Индекс средней численности в исходном файле SPSS
         self.malVIR      = 8            # Индекс выручки в исходном файле SPSS
-        self.malnCHT      = 1            # Индекс средней численности в списке итогов
-        self.malnVIR      = 3            # Индекс выручки в списке итогов
+        self.malnCHT      = 2            # Индекс средней численности в внутр. таблице считанных данных
+        self.malnVIR      = 3            # Индекс выручки в внутр. таблице считанных данных
         self.malCHTres   = 100          # Ограничение средней численности малых
         self.malVIRres   = 400000000    # Ограничение выручки малых
 
@@ -115,8 +115,8 @@ class cTerr(object):
         self.numvesmic   = 30          # Индекс веса у микро = номер переменной - 1
         self.micCHT      = 5            # Индекс средней численности в исходном файле SPSS
         self.micVIR      = 8            # Индекс выручки в исходном файле SPSS
-        self.micnCHT      = 2            # Индекс средней численности в списке итогов
-        self.micnVIR      = 3            # Индекс выручки в списке итогов
+        self.micnCHT      = 2            # Индекс средней численности в внутр. таблице считанных данных
+        self.micnVIR      = 3            # Индекс выручки в внутр. таблице считанных данных
         self.micCHTres   = 15           # Ограничение средней численности микропредприятий
         self.micVIRres   = 60000000     # Ограничение выручки микропредприятий
 
@@ -133,32 +133,34 @@ class cTerr(object):
 #        ToPrintLog('Чтение Cursor пообъектных данных из '+ mFile)
 
         nump=[num[0] for num in npok]
-        nump.insert(1,numves)
+        nump.insert(1,numves)           # Порядок: ОКВЭД ВЕС ЧИСЛЕНН ВЫРУЧКА ...
         dataCursor=spss.Cursor(nump)
-        data=map(missValAll, dataCursor.fetchall())
+        data2008=map(missValAll, dataCursor.fetchall())
         dataCursor.close()
 
-        data  = [rw for rw in data if rw[0] > 0]                        # По правилам 2008 года
-        data9 = [rw for rw in data \ 
-                if rw[kCHT] <= CHTres and rw[kVIR] <= VIRres]           # По правилам 2009 года
+        data  = [rw for rw in data2008 if rw[0] > 0 \
+                ]                                                         # По правилам 2008 года
+        data9 = [rw for rw in data2008 if (rw[0] > 0 \ 
+                and rw[kCHT] <= CHTres and rw[kVIR] <= VIRres)]           # По правилам 2009 года
 
         etime = time() - stime
 #        ToPrintLog('Время чтения Cursor пообъектных данных из '+ mFile + ' : %.2f сек.' % (etime))
 
         i = len([rv[0] for rv in data])                                 # Количество валидных наблюдений
         i9 = len([rv[0] for rv in data9])                               # Количество валидных наблюдений
-
-        Tot2008[0] = sum(rv[1] for rv in data)                          # Оценка количества предприятий по весу
-        Tot2009[0] = sum(rv[1] for rv in data9)                         # Оценка количества предприятий по весу
-#        print 'Валидных наблюдений (1), предприятий 2008-2009:', i, Tot2008[0], i9, Tot2009[0]
+        Tot2008[0] = 777777                                             # Для ОКВЭД
+        Tot2009[0] = 777777                                             # Для ОКВЭД
+        Tot2008[1] = sum(rv[1] for rv in data)                          # Оценка количества предприятий по весу
+        Tot2009[1] = sum(rv[1] for rv in data9)                         # Оценка количества предприятий по весу
+        print 'Валидных наблюдений (1), предприятий 2008-2009:', i, Tot2008[0], i9, Tot2009[0]
         for i in range(2, len(Tot2008)):                                      # По показателям
             Tot2008[i]  = sum(rv[1] * rv[i] for rv in data)
             Tot2009[i]  = sum(rv[1] * rv[i] for rv in data9)
 #        print 'Итоги 2008:', Tot2008
 #        print 'Итоги 2009:', Tot2009
         k = 0
-        for rokv in listOkved:
-            print k, rokv[0], rokv[1]
+        for rokv in listOkved:          # Подготовка итогов по ОКВЭД (по полной схеме сборки)
+#            print k, rokv[0], rokv[1]
             Tot2008okv.append(0.0 for rw in Tot2008)
             Tot2009okv.append(0.0 for rw in Tot2009)
             coeffokv.append(0.0 for rw in coeff)
@@ -193,7 +195,7 @@ class TTotal(cTerr):
     numpokmic     = 11
     vMikro        = False
     malpok = [
-    [1  , 'ОКВЭД', 'tab_33(01-09)_list1.xls'],
+    [1  , 'ОКВЭД', 'tab_33pred-2007.xls'],
     [5  , 'Cредняя численность работников - всего,чел.', 'tab_33(01-09)_list1.xls'],
     [8  , 'Выручка (нетто) от реализации товаров, продукции, работ, услуг (без НДС, акцизов и аналогичных обязательных платежей),тыс.руб.', 'tab_33(12)_list1.xls'],
     [11 , 'Инвестиции в основной капитал (в части новых и приобретенных по импорту основных средств),тыс.руб.', 'tab_33(13)_list1.xls'],
@@ -222,7 +224,7 @@ class TTotal(cTerr):
         self.OkRul = OkvedAss(ToPrintLog, newDir)
         self.ListOkv = ListOkved(ToPrintLog, newDir)
     def getTotal2007(self):
-        np = 1
+        np = 0
         for pok in self.malpok:
             os.chdir(totalDir2007)
             np = np + 1                 # Номер показателя в списке итогов malTot2007
@@ -346,7 +348,7 @@ class TTotal(cTerr):
                 nameRatio = "    Доля микропредприятий"
             else:
                 nameRatio = "    Доля малых предприятий"
-            ws.write(startRow + 1,1,"    База 2008 года -иходная",headrow_xf)
+            ws.write(startRow + 1,1,"    База 2008 года - исходная",headrow_xf)
             ws.write(startRow + 2,1,"    База 2008 года - все критерии",headrow_xf)
             ws.write(startRow + 3,1,"    Коэффициент коррекции ряда",headrow_xf)
             ws.write(startRow + 4,1,"    Итоги 2007 года исходные",headrow_xf)
