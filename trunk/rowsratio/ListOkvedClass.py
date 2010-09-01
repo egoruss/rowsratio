@@ -12,6 +12,7 @@ class ListOkved(object):
         def getListOkved(self, nameFileList, rAss, grcol, sbcol, shrow):
 #            self.listOk = {}
             self.listOk = []
+#            print rAss
             if os.access(ListOkvedDir + nameFileList, os.F_OK):
                 self.rb = xlrd.open_workbook(ListOkvedDir + nameFileList,formatting_info=True,encoding_override="cp1251")
                 self.sh = self.rb.sheet_by_index(0)
@@ -20,9 +21,10 @@ class ListOkved(object):
                     self.grOkved = str(self.sh.cell_value(rowx=rownum, colx=grcol).encode('cp1251')).strip()
                     if not self.grOkved == '':
 #                        self.listOk[self.grOkved] = self.sh.cell_value(rowx=rownum, colx=sbcol).encode('cp1251').strip()
+#                        print rownum, self.grOkved, self.sh.cell_value(rowx=rownum, colx=sbcol).encode('cp1251').strip()
                         self.listOk.append([self.grOkved, self.sh.cell_value(rowx=rownum, colx=sbcol).encode('cp1251').strip(), rAss[self.grOkved]])
 #                        print rownum, self.grOkved, self.listOk[self.grOkved]
-                        print rownum+1, i+1, self.listOk[i][0], self.listOk[i][1], self.listOk[i][2]
+#                        print rownum+1, i+1, self.listOk[i][0], self.listOk[i][1], self.listOk[i][2]
                         
                         i += 1
                 del self.rb
@@ -40,5 +42,5 @@ class ListOkved(object):
 #        self.nameFileListOkvedmic = '\\total2009\\СЧР всего-1121100010001.xls'
         self.nameFileListOkvedmal = '\\своды ПМ 2007\\tab_33(01-09)_list1.xls'
         self.nameFileListOkvedmic = '\\своды ПМ 2007\\tab_33(01-09)_list1.xls'
-        self.listOkvedmal = getListOkved(self, self.nameFileListOkvedmal, self.OkRul.rulesAssPlus, 0, 1, 6)
-        self.listOkvedmic = getListOkved(self, self.nameFileListOkvedmic, self.OkRul.rulesAssPlus, 0, 1, 6)
+        self.listOkvedmal = getListOkved(self, self.nameFileListOkvedmal, self.OkRul.rulesAssPlus, 2, 0, 6)
+        self.listOkvedmic = getListOkved(self, self.nameFileListOkvedmic, self.OkRul.rulesAssPlus, 2, 0, 6)
