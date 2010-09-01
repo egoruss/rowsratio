@@ -222,7 +222,7 @@ class TTotal(cTerr):
 
     def __init__ (self):
         self.OkRul = OkvedAss(ToPrintLog, newDir)
-        self.ListOkv = ListOkved(ToPrintLog, newDir)
+        self.ListOkv = ListOkved(ToPrintLog, newDir)        # self.ListOkv.listOkvedmal[][]
     def getTotal2007(self):
         np = 0
         for pok in self.malpok:
