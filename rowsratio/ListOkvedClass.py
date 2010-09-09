@@ -19,7 +19,7 @@ class ListOkved(object):
                 i = 0
                 for rownum in range(shrow, self.sh.nrows):
                     self.grOkved = str(self.sh.cell_value(rowx=rownum, colx=grcol).encode('cp1251')).strip()
-                    if not self.grOkved == '':
+                    if not self.grOkved == '' and not self.grOkved == '12':
 #                        self.listOk[self.grOkved] = self.sh.cell_value(rowx=rownum, colx=sbcol).encode('cp1251').strip()
 #                        print rownum, self.grOkved, self.sh.cell_value(rowx=rownum, colx=sbcol).encode('cp1251').strip()
                         self.listOk.append([self.grOkved, self.sh.cell_value(rowx=rownum, colx=sbcol).encode('cp1251').strip(), rAss[self.grOkved]])

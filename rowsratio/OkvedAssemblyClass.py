@@ -9,11 +9,12 @@ import xlrd
 class OkvedAss(object):
     def __init__ (self, ToPrint, rulesDir):
         def insertGr(self, gr, listKod):
-            listRet = []
+            listRet = [] + [gr]
 #            print 'Проверяем ', listKod
             for ig, ingr in enumerate(listKod):               # Расширение подгруппы
                 if ingr == gr:                               # Не сам из себя!
-                    listRet = listRet + [ingr]   # Не расширяем, переносим как есть
+                    pass
+#                    listRet = listRet + [ingr]   # Не расширяем, переносим как есть
                 elif ingr in self.rulesAss:                   # Это подгруппа и Есть правило сборки
 #                    print 'Найдена подгруппа', ingr, self.rulesAss[ingr]
                     listRet = listRet + insertGr(self, ingr, self.rulesAss[ingr])
@@ -36,7 +37,8 @@ class OkvedAss(object):
             for rownum in range(self.sh.nrows):
                 self.grOkved = str(self.sh.cell_value(rowx=rownum, colx=self.grcol).encode('cp1251')).split('=',1)[0].strip()
                 if not self.grOkved == '':
-                    self.rulesAss[self.grOkved] = str(self.sh.cell_value(rowx=rownum, colx=self.sbcol)).encode('cp1251').split('+')
+                    self.rulesAss[self.grOkved] = [rw.strip() for rw in str(self.sh.cell_value(rowx=rownum, colx=self.sbcol)).encode('cp1251').split('+')]
+                    
 #                    print '-', self.grOkved, '-', self.rulesAss[self.grOkved]
             del self.rb
             for gr, strOk in sorted(self.rulesAss.iteritems()):

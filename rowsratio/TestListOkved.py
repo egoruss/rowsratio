@@ -20,4 +20,4 @@ from ListOkvedClass import *
 
 LiO = ListOkved(ToPrintLog, _newDir)
 for re in LiO.listOkvedmal:
-    print re[0], re[1] , re[2]
+    print re[0], re[1], re[2]

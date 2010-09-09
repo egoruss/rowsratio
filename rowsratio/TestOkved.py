@@ -19,5 +19,5 @@ def ToPrintLog (sMess):
 from OkvedAssemblyClass import *
 
 OkAs = OkvedAss(ToPrintLog, _newDir)
-for k, v in OkAs.rulesAssPlus.iteritems():
+for k, v in sorted(OkAs.rulesAssPlus.iteritems()):
      print k, v
