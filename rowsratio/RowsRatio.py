@@ -19,13 +19,13 @@ BEGIN PROGRAM PYTHON.
 #         + Ускорение подсчёта итогов по разрезам ОКВЭД
 #         + Добавление к показателям количества предприятий
 #         + Итоги по ОКВЭД
-#         + Наложить на данные 2008 года условия 2007 года - ограничения на
+#         - Наложить на данные 2008 года условия 2007 года - ограничения на
 #           численность, с учётом ОКВЭД
+#         + Опознание и извлечение долей микропредприятий в 2007 году по разрезу ОКВЭД
 #         
-#         
-########################################
-#       08.09.2010 21:39:05
-########################################
+############################################
+#       Степанов С.В.   11.09.2010 20:12:20
+############################################
 from __future__ import with_statement
 import os
 from datetime import datetime, date, time
@@ -125,7 +125,7 @@ class cTerr(object):
         self.micCHTres   = 15           # Ограничение средней численности микропредприятий
         self.micVIRres   = 60000000     # Ограничение выручки микропредприятий
 
-    def evalTotal(self, vM, mFile, listOkved, \ 
+    def evalTotal(self, vM, mFile, listOkved, rulOk, \ 
                         Tot2008, Tot2009, coeff, Tot2008okv, Tot2009okv, coeffokv,\ 
                         Tot2007okv, Tos2007okv, Ratio2007okv, \ 
                         numves, kCHT, kVIR, CHTres, VIRres, npok):
@@ -139,7 +139,7 @@ class cTerr(object):
 #        ToPrintLog('Чтение Cursor пообъектных данных из '+ mFile)
 
         nump=[num[0] for num in npok]
-        nump.insert(1,numves)           # Порядок: ОКВЭД ВЕС ЧИСЛЕНН ВЫРУЧКА ...
+        nump.insert(1,numves)
         dataCursor=spss.Cursor(nump)
         data2008=map(missValAll, dataCursor.fetchall())
         dataCursor.close()
@@ -148,31 +148,47 @@ class cTerr(object):
 #            data2008[k][0] = data2008[k][0].strip()
 #            print data2008[k][0], type(data2008[k][0]), data2008[k][1], type(data2008[k][1])
 
-        data  = [rw for rw in data2008 if rw[0] > 0 \
-                ]                                                         # По правилам 2008 года
-        data9 = [rw for rw in data2008 if (rw[0] > 0 \ 
-                and rw[kCHT] <= CHTres and rw[kVIR] <= VIRres)]           # По правилам 2009 года
-#        dataokv = [rw[0] for rw in data]
-#        dataokv.sort()
-#        for i in range (0, len(dataokv)):
-#            print i, '-'+dataokv[i]+'-'
+# Порядок: ОКВЭД ВЕС ЧИСЛЕНН ВЫРУЧКА ИНВЕСТИЦИИ ОБОРОТ ОТГРУЖЕНО ПРОДАНО ЧИСЛЕН_БЕЗ_СОВМЕСТ ...
+#            0    1     2       3        4         5       6        7             8        
+        data  = [rw for rw in data2008 if rw[1] > 0 \
+                and ((rw[0] in rulOk['PROM'] and rw[2] <= 100) \ 
+                  or (rw[0] in rulOk['STRO'] and rw[2] <= 100) \ 
+                  or (rw[0] in rulOk['TRAN'] and rw[2] <= 100) \ 
+                  or (rw[0] in rulOk['SECH'] and rw[2] <=  60) \ 
+                  or (rw[0] in rulOk['NTSF'] and rw[2] <=  60) \ 
+                  or (rw[0] in rulOk['OPTO'] and rw[2] <=  50) \ 
+                  or (rw[0] in rulOk['ROTO'] and rw[2] <=  30) \ 
+                  or (rw[0] not in rulOk['PROC'] and rw[2] <= 100) \ 
+                    )]                                                   # По правилам 2007 года
+        ToPrintLog('Всего в выборке 2008 года                     :'+str(len(data2008))+' предприятий')
+        ToPrintLog('Осталось в выборке по правилам 2007 года      :'+str(len(data))+' предприятий')
+        ToPrintLog('Всего исключено    по правилам 2007 года      :'+str(len(data2008)-len(data))+' предприятий')
+        ToPrintLog('    Из них с нулевыми весами                  :'+str(len([rw for rw in data2008 if rw[1] <= 0])))
+#        for rw in data:
+#            print rw
+        data9 = [rw for rw in data2008 if (rw[1] > 0 \ 
+                and rw[kCHT] <= CHTres and rw[kVIR] <= VIRres)]          # По правилам 2009 года
 
-#        etime = time() - stime
-#        ToPrintLog('Время чтения Cursor пообъектных данных из '+ mFile + ' : %.2f сек.' % (etime))
+        ToPrintLog('Осталось в выборке по правилам 2009 года      :'+str(len(data9))+' предприятий')
+        ToPrintLog('Всего исключено    по правилам 2009 года      :'+str(len(data2008)-len(data9))+' предприятий')
+        ToPrintLog('    Из них с нулевыми весами                  :'+str(len([rw for rw in data2008 if rw[1] <= 0])))
 
-        i = len([rv[0] for rv in data])                                 # Количество валидных наблюдений
-        i9 = len([rv[0] for rv in data9])                               # Количество валидных наблюдений
+        i = len([rv[0] for rv in data])                                  # Количество валидных наблюдений
+        i9 = len([rv[0] for rv in data9])                                # Количество валидных наблюдений
         Tot2008[0] = 'ВСЕГО'                                             # Для ОКВЭД
         Tot2009[0] = 'ВСЕГО'                                             # Для ОКВЭД
-        Tot2008[1] = sum(rv[1] for rv in data)                          # Оценка количества предприятий по весу
-        Tot2009[1] = sum(rv[1] for rv in data9)                         # Оценка количества предприятий по весу
-        ToPrintLog('Валидных наблюдений - Оценка, предприятия 2008-2009: '+str(i)+'-'+str(Tot2008[0])+'-'+str(Tot2008[1])+'-'+str(i9)+'-'+str(Tot2009[0])+'-'+str(Tot2009[1]))
-        for i in range(2, len(Tot2008)):                                      # По показателям
+        Tot2008[1] = sum(rv[1] for rv in data)                           # Оценка количества предприятий по весу
+        Tot2009[1] = sum(rv[1] for rv in data9)                          # Оценка количества предприятий по весу
+        
+        ToPrintLog('Оценка по правилам 2007 года                  :'+str(Tot2008[1])+' предприятий')
+        ToPrintLog('Оценка по правилам 2009 года                  :'+str(Tot2009[1])+' предприятий')
+        
+        for i in range(2, len(Tot2008)):                                 # По показателям
             Tot2008[i]  = sum(rv[1] * rv[i] for rv in data)
             Tot2009[i]  = sum(rv[1] * rv[i] for rv in data9)
 
         k = 0
-        for rokv in listOkved:          # Подготовка итогов по ОКВЭД (по 2007 - схеме сборки)
+        for rokv in listOkved:                                           # Подготовка итогов по ОКВЭД (по 2007 - схеме сборки)
 #            print rokv[0], rokv[1], rokv[2]
             Tot2008okv.append([0.0 for rw in Tot2008])
             Tot2009okv.append([0.0 for rw in Tot2009])
@@ -225,7 +241,7 @@ class cTerr(object):
 #            print coeffokv[i]
 
         etime = time() - stime
-        ToPrintLog('Время расчёта итогов из '+ mFile + ' : %.2f сек.' % (etime))
+        ToPrintLog('Время расчёта итогов из '+ mFile.rsplit('\\',1)[1] + ' : %.2f сек.' % (etime))
         
         spss.Submit(r"""
         DATASET CLOSE *. 
@@ -245,17 +261,17 @@ class TTotal(cTerr):
     numpokmic     = 11
     vMikro        = False
     malpok = [
-    [1  , 'ОКВЭД', 'tab_33pred-2007.xls'],
-    [5  , 'Cредняя численность работников - всего,чел.', 'tab_33(01-09)_list1.xls'],
-    [8  , 'Выручка (нетто) от реализации товаров, продукции, работ, услуг (без НДС, акцизов и аналогичных обязательных платежей),тыс.руб.', 'tab_33(12)_list1.xls'],
-    [11 , 'Инвестиции в основной капитал (в части новых и приобретенных по импорту основных средств),тыс.руб.', 'tab_33(13)_list1.xls'],
-    [14 , 'Оборот организации по малым предприятиям,тыс.руб.', 'tab_33(o)_list1.xls'],
-    [17 , 'Отгружено товаров собственного производства, выполнено работ и услуг собственными силами (без НДС и акциза),тыс.руб.', 'tab_33(06)_list1.xls'],
-    [20 , 'Продано товаров несобственного производства (без НДС и акцизов),тыс.руб.', 'tab_33(07)_list1.xls'],
-    [23 , 'Средняя численность работников списочного состава (без внешних совместителей),чел.', 'tab_33(02-09)_list1.xls'],
-    [26 , 'Фонд начисленной заработной платы внешним совместителям,тыс.руб.', 'tab_33(03-11)_list1.xls'],
-    [29 , 'Фонд начисленной заработной платы всех работников,тыс.руб.', 'tab_33(01-11)_list1.xls'],
-    [32 , 'Фонд начисленной заработной платы работников списочного состава (без внешних совместителей),тыс.руб.', 'tab_33(02-11)_list1.xls']
+    [1  , 'ОКВЭД', 'tab_33pred-2007.xls', 'tab_33pred-2007-corr'],
+    [5  , 'Cредняя численность работников - всего,чел.', 'tab_33(01-09)_list1.xls', 'tab_33(01-09)_list1-corr'],
+    [8  , 'Выручка (нетто) от реализации товаров, продукции, работ, услуг (без НДС, акцизов и аналогичных обязательных платежей),тыс.руб.', 'tab_33(12)_list1.xls', 'tab_33(12)_list1-corr'],
+    [11 , 'Инвестиции в основной капитал (в части новых и приобретенных по импорту основных средств),тыс.руб.', 'tab_33(13)_list1.xls', 'tab_33(13)_list1-corr'],
+    [14 , 'Оборот организации по малым предприятиям,тыс.руб.', 'tab_33(o)_list1.xls', 'tab_33(o)_list1-corr'],
+    [17 , 'Отгружено товаров собственного производства, выполнено работ и услуг собственными силами (без НДС и акциза),тыс.руб.', 'tab_33(06)_list1.xls', 'tab_33(06)_list1-corr'],
+    [20 , 'Продано товаров несобственного производства (без НДС и акцизов),тыс.руб.', 'tab_33(07)_list1.xls', 'tab_33(07)_list1-corr'],
+    [23 , 'Средняя численность работников списочного состава (без внешних совместителей),чел.', 'tab_33(02-09)_list1.xls', 'tab_33(02-09)_list1-corr'],
+    [26 , 'Фонд начисленной заработной платы внешним совместителям,тыс.руб.', 'tab_33(03-11)_list1.xls', 'tab_33(03-11)_list1-corr'],
+    [29 , 'Фонд начисленной заработной платы всех работников,тыс.руб.', 'tab_33(01-11)_list1.xls', 'tab_33(01-11)_list1-corr'],
+    [32 , 'Фонд начисленной заработной платы работников списочного состава (без внешних совместителей),тыс.руб.', 'tab_33(02-11)_list1.xls', 'tab_33(02-11)_list1-corr']
     ]
     micpok = [
     [1  , 'ОКВЭД'],
@@ -271,7 +287,7 @@ class TTotal(cTerr):
     ]
 
     def __init__ (self):
-        self.OkRul = OkvedAss(ToPrintLog, newDir)
+        self.OkRul = OkvedAss(ToPrintLog, newDir)           # OkRul.rulesAssPlus
         self.ListOkv = ListOkved(ToPrintLog, newDir)        # self.ListOkv.listOkvedmal[][]
     def getTotal2007(self):
         np = 0
@@ -304,7 +320,7 @@ class TTotal(cTerr):
                                         break
                                 else:
                                     if not compp:
-                                        ToPrintLog('Отсутствует ОКВЭД '+rt.malTot2007Okv[k][0]+' в файле итогов.')
+                                        ToPrintLog('    Отсутствует ОКВЭД '+rt.malTot2007Okv[k][0]+' в файле итогов.')
 
                                 k += 1
                                 
@@ -316,16 +332,27 @@ class TTotal(cTerr):
                 ToPrintLog('Не найден!! файл итогов ' + pok[2])
 
     def getRatioMic(self):
+
         def getProd(self, rP, stro, scol, rcol):
+            compp = False
             for rownum in range(sh.nrows):
                 parsName = sh.cell_value(rowx=rownum, colx=scol).encode('cp1251')
                 #print type(parsName), parsName.strip(), parsName.find(stro)
                 if parsName.find(stro) >= 0:
-                    ToPrintLog('Найдена доля -' + parsName + '- ' + str(sh.cell_value(rowx=rownum, colx=rcol)))
-                    return sh.cell_value(rowx=rownum, colx=rcol)
-                    
+                    compp = True
+                    valRatio = sh.cell_value(rowx=rownum, colx=rcol)
+#                    ToPrintLog('Найдена доля :'+stro+':'+parsName+': '+str(valRatio))
+                    if type(valRatio) is FloatType : 
+                        valRatio = float(valRatio) 
+                    else: 
+                        valRatio = 0.0
+                    return valRatio
+            else:
+                pass
+#                if not compp:
+#                    ToPrintLog('    Не найдена доля по ОКВЭД -'+stro+'-')
             return rP
-                    
+
         os.chdir(ratioDir)
         for rt in self.aTerr:
             if os.access(rt.OKATO + ' доли.xls', os.F_OK):
@@ -336,18 +363,18 @@ class TTotal(cTerr):
                 rProd  = getProd(self, rPred, 'продано товаров', 0, 2)
                 rOtgr  = getProd(self, rPred, 'отгружено товаров', 0, 2)
                 
-                rt.micRatio2007[0]  =  0
-                rt.micRatio2007[1]  =  rPred
-                rt.micRatio2007[2]  =  rPred
-                rt.micRatio2007[3]  =  rProd
-                rt.micRatio2007[4]  =  rProd
-                rt.micRatio2007[5]  =  rProd
-                rt.micRatio2007[6]  =  rOtgr
-                rt.micRatio2007[7]  =  rProd
-                rt.micRatio2007[8]  =  rPred
-                rt.micRatio2007[9]  =  rPred
-                rt.micRatio2007[10] =  rPred
-                rt.micRatio2007[11] =  rPred
+                rt.micRatio2007[0 ]  =  0
+                rt.micRatio2007[1 ]  =  rPred
+                rt.micRatio2007[2 ]  =  rPred
+                rt.micRatio2007[3 ]  =  rProd
+                rt.micRatio2007[4 ]  =  rProd
+                rt.micRatio2007[5 ]  =  rProd
+                rt.micRatio2007[6 ]  =  rOtgr
+                rt.micRatio2007[7 ]  =  rProd
+                rt.micRatio2007[8 ]  =  rPred
+                rt.micRatio2007[9 ]  =  rPred
+                rt.micRatio2007[10]  =  rPred
+                rt.micRatio2007[11]  =  rPred
 
                 for np in range(0, len(rt.micRatio2007)):
                     rt.malRatio2007[np]  = 1 - rt.micRatio2007[np]          # Доля малых от микро
@@ -360,35 +387,63 @@ class TTotal(cTerr):
                 
                 # Разрез по ОКВЭД
                 k = 0
-                for rokv in rt.malRatio2007Okv:   # Доли микропредприятий в 2007 по ОКВЭД-2007 - схеме сборки
-                    compp = False
-                
+                for rokv in rt.micRatio2007Okv:   # Доли микропредприятий в 2007 по ОКВЭД-2007 - схеме сборки
+                    rProk = getProd(self, rPred, rokv[0], 0, 3)
+                    rt.micRatio2007Okv[k][1 ] = rProk
+                    rt.micRatio2007Okv[k][2 ] = rProk
+                    rt.micRatio2007Okv[k][3 ] = rProd
+                    rt.micRatio2007Okv[k][4 ] = rProd
+                    rt.micRatio2007Okv[k][5 ] = rProd
+                    rt.micRatio2007Okv[k][6 ] = rOtgr
+                    rt.micRatio2007Okv[k][7 ] = rProd
+                    rt.micRatio2007Okv[k][8 ] = rProk
+                    rt.micRatio2007Okv[k][9 ] = rProk
+                    rt.micRatio2007Okv[k][10] = rProk
+                    rt.micRatio2007Okv[k][11] = rProk
+                    k += 1
+#                for i, r in enumerate(rt.micRatio2007Okv):
+#                    print r
+#                rt.malRatio2007Okv[0][1 ] = rPred
+#                rt.malRatio2007Okv[0][2 ] = rPred
+#                rt.malRatio2007Okv[0][3 ] = rProd
+#                rt.malRatio2007Okv[0][4 ] = rProd
+#                rt.malRatio2007Okv[0][5 ] = rProd
+#                rt.malRatio2007Okv[0][6 ] = rOtgr
+#                rt.malRatio2007Okv[0][7 ] = rProd
+#                rt.malRatio2007Okv[0][8 ] = rPred
+#                rt.malRatio2007Okv[0][9 ] = rPred
+#                rt.malRatio2007Okv[0][10] = rPred
+#                rt.malRatio2007Okv[0][11] = rPred
             else:
                 ToPrintLog('Не найден!! файл долей для ' + rt.OKATO + ' ' + rt.sTerr.strip())
-                        
+            for i, rat in enumerate(rt.micRatio2007Okv):
+                for j in range(1, len(rat)) :
+                    rt.malRatio2007Okv[i][j] = 1 - rt.micRatio2007Okv[i][j]
+                    rt.malTos2007Okv[i][j] = rt.malTot2007Okv[i][j] * rt.malRatio2007Okv[i][j] * rt.malcoeffOkv[i][j]
 
     def allTerr(self):
-        ToPrintLog('    Малые : Вычисление коэффициентов по территориям')
-        ToPrintLog('Окр.    |ОКАТ|Наблюде|Корр Наблюде| Предприятий  | Численность ')
         for rt in self.aTerr:
+            ToPrintLog('....'+rt.nOkrug+' '+rt.sOkrug+' '+rt.OKATO+' '+rt.sTerr.strip()+' МАЛЫЕ предприятия')
             self.vMikro = False
-            rt.evalTotal(self.vMikro, rt.malFile, self.ListOkv.listOkvedmal,
+            rt.evalTotal(self.vMikro, rt.malFile, self.ListOkv.listOkvedmal, self.OkRul.rulesAssPlus,
             rt.malTot2008, rt.malTot2009, rt.malcoeff, rt.malTot2008Okv, rt.malTot2009Okv, rt.malcoeffOkv, 
             rt.malTot2007Okv, rt.malTos2007Okv, rt.malRatio2007Okv, rt.numvesmal,
             rt.malnCHT, rt.malnVIR, rt.malCHTres, rt.malVIRres, self.malpok)
 
+            ToPrintLog('....'+rt.nOkrug+' '+rt.sOkrug+' '+rt.OKATO+' '+rt.sTerr.strip()+' МИКРО предприятия')
             self.vMikro = True
-            rt.evalTotal(self.vMikro, rt.micFile, self.ListOkv.listOkvedmic,
+            rt.evalTotal(self.vMikro, rt.micFile, self.ListOkv.listOkvedmic, self.OkRul.rulesAssPlus,
             rt.micTot2008, rt.micTot2009, rt.miccoeff, rt.micTot2008Okv, rt.micTot2009Okv, rt.miccoeffOkv, 
             rt.micTot2007Okv, rt.micTos2007Okv, rt.micRatio2007Okv, rt.numvesmic,
             rt.micnCHT, rt.micnVIR, rt.micCHTres, rt.micVIRres, self.micpok)
 
-            ToPrintLog(rt.nOkrug+'2008ма' + '|{0:4}|{1:7d}|{2:12}|{3:13.0f} |{4:13.0f}'.format(rt.OKATO,rt.malnnab,rt.malTot2008[0],rt.malTot2008[1], rt.malTot2008[2]))
-            ToPrintLog('   2009 малые        |{0:12}|{1:13.0f} |{2:13.0f}'.format(rt.malTot2009[0],rt.malTot2009[1],rt.malTot2009[2]))
+            ToPrintLog('        |ОКАТ|       |            | Предприятий  | Численность ')
+            ToPrintLog('2008 мал' + '|{0:4}|{1:7d}|{2:12}|{3:13.0f} |{4:13.0f}'.format(rt.OKATO,rt.malnnab,rt.malTot2008[0],rt.malTot2008[1], rt.malTot2008[2]))
+            ToPrintLog('2009 малые           |{0:12}|{1:13.0f} |{2:13.0f}'.format(rt.malTot2009[0],rt.malTot2009[1],rt.malTot2009[2]))
             ToPrintLog('   Коэффициент малые |{0:12}|{1:13.4f} |{2:13.4f}'.format(rt.malcoeff[0],rt.malcoeff[1],rt.malcoeff[2]))
 
-            ToPrintLog(rt.nOkrug+'2008ми' + '|{0:4}|{1:7d}|{2:12}|{3:13.0f} |{4:13.0f}'.format(rt.OKATO,rt.malnnab,rt.micTot2008[0],rt.micTot2008[1], rt.micTot2008[2]))
-            ToPrintLog('   2009 микро        |{0:12}|{1:13.0f} |{2:13.0f}'.format(rt.micTot2009[0],rt.micTot2009[1],rt.micTot2009[2]))
+            ToPrintLog('2008 мик' + '|{0:4}|{1:7d}|{2:12}|{3:13.0f} |{4:13.0f}'.format(rt.OKATO,rt.malnnab,rt.micTot2008[0],rt.micTot2008[1], rt.micTot2008[2]))
+            ToPrintLog('2009 микро           |{0:12}|{1:13.0f} |{2:13.0f}'.format(rt.micTot2009[0],rt.micTot2009[1],rt.micTot2009[2]))
             ToPrintLog('   Коэффициент микро |{0:12}|{1:13.4f} |{2:13.4f}'.format(rt.miccoeff[0],rt.miccoeff[1],rt.miccoeff[2]))
         
         closeSPSSfiles()
@@ -429,8 +484,8 @@ class TTotal(cTerr):
                 nameRatio = "    Доля микропредприятий"
             else:
                 nameRatio = "    Доля малых предприятий"
-            ws.write(startRow + 1,1,"    База 2008 года - исходная",headrow_xf)
-            ws.write(startRow + 2,1,"    База 2008 года - все критерии",headrow_xf)
+            ws.write(startRow + 1,1,"    База 2008 года - правила 2007 года",headrow_xf)
+            ws.write(startRow + 2,1,"    База 2008 года - правила 2009 года",headrow_xf)
             ws.write(startRow + 3,1,"    Коэффициент коррекции ряда",headrow_xf)
             ws.write(startRow + 4,1,"    Итоги 2007 года исходные",headrow_xf)
             ws.write(startRow + 5,1,nameRatio, headrow_xf)
@@ -520,6 +575,14 @@ class TTotal(cTerr):
 
         wbi.save(dirTotal + "Скорректированные значения итогов за 2007 год для микропредприятий" + '.xls')                             #---  Запись таблицы  Конец  ---
         del wbi
+        
+        #---   Скорректированные Итоги в разрезе по ОКВЭД   ---
+        for np in malpok:
+            xlsfile = np[3]+'.xls'
+            
+        
+        
+        
     #---  Запись таблиц Excel - Конец класса  ---
 
 #--- Global functions  ---
