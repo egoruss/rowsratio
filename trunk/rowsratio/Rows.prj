@@ -21,5 +21,7 @@ Create Tagfile=0
 9=okved_assembly .xls
 10=RowsRatio.py
 11=ListOkvedClass.py
+12=Схема сборки ОКВЭД.TXT
+13=TestListOkved.py
 [Backup]
 LastComment=8 июля 2010
