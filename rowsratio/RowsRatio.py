@@ -19,12 +19,15 @@ BEGIN PROGRAM PYTHON.
 #         + Ускорение подсчёта итогов по разрезам ОКВЭД
 #         + Добавление к показателям количества предприятий
 #         + Итоги по ОКВЭД
-#         - Наложить на данные 2008 года условия 2007 года - ограничения на
+#         + Наложить на данные 2008 года условия 2007 года - ограничения на
 #           численность, с учётом ОКВЭД
 #         + Опознание и извлечение долей микропредприятий в 2007 году по разрезу ОКВЭД
+#         + Экспорт таблиц в Excel-файлы по показателям в разрезе по ОКВЭД-2007
+#         
+#         
 #         
 ############################################
-#       Степанов С.В.   11.09.2010 20:12:20
+#       Степанов С.В.   13.09.2010 16:18:17
 ############################################
 from __future__ import with_statement
 import os
@@ -37,7 +40,8 @@ from xlwt import *
 import xlrd
 
 newDir         = 'e:\\Tmp\\Spss\\rowsratio'
-dataDir        = newDir + '\ObData'
+dataDir        = newDir + '\\spssData'
+dataDirXls     = newDir + '\\xlsData'
 totalDir       = '\\Total'
 totalDir2007   = newDir + '\\своды ПМ 2007\\'
 ratioDir       = newDir + '\Ratio\\'
@@ -65,11 +69,15 @@ class cTerr(object):
     def __init__ (self, dataDir, mal, mic, nO, sT, kO, sO):
         #print globals()
         self.OKATO = "%02i" % nO        # ОКАТО 
-        self.sTerr = sT                 # Название территории
+        self.sTerr = sT.strip()         # Название территории
         self.nOkrug = "%02i" % kO       # Код округа
         self.sOkrug = sO                # Название округа
         self.malFile = dataDir + '\\' + self.OKATO + mal + '.sav'    # Имя файла данных малых предприятий.
         self.micFile = dataDir + '\\' + self.OKATO + mic + '.sav'    # Имя файла данных микропредприятий.
+                                             # ф.№ ПМ --- (03)Краснодарский край_1.xls
+                                             # ф.№ МП(микро) --- (87)Республика Коми_1.xls
+        self.malFileXls = dataDir + '\\' + 'ф.№ ПМ --- ('       +self.OKATO+')'+self.sTerr+'_1'+'.xls'    # Имя файла данных малых предприятий.
+        self.micFileXls = dataDir + '\\' + 'ф.№ МП(микро) --- ('+self.OKATO+')'+self.sTerr+'_1'+'.xls'    # Имя файла данных микропредприятий.
         self.ismalFile = False
         self.ismicFile = False
         self.nameDataSet = 'D' + self.OKATO                       # Имя DATASET
@@ -90,6 +98,7 @@ class cTerr(object):
         self.malknab     = 0                                      # Количество корректных наблюдений
         self.malrnab     = 0                                      # Количество ошибочных наблюдений
         self.numvesmal   = 33           # Индекс веса у малых = номер переменной - 1
+        self.numvesmalXls   = 14           # Индекс веса у малых = номер переменной - 1
         self.malCHT      = 5            # Индекс средней численности в исходном файле SPSS
         self.malVIR      = 8            # Индекс выручки в исходном файле SPSS
         self.malnCHT      = 2            # Индекс средней численности в внутр. таблице считанных данных
@@ -118,6 +127,7 @@ class cTerr(object):
         self.micknab     = 0                                      # Количество корректных наблюдений
         self.micrnab     = 0                                      # Количество ошибочных наблюдений
         self.numvesmic   = 30          # Индекс веса у микро = номер переменной - 1
+        self.numvesmicXls   = 13          # Индекс веса у микро = номер переменной - 1
         self.micCHT      = 5            # Индекс средней численности в исходном файле SPSS
         self.micVIR      = 8            # Индекс выручки в исходном файле SPSS
         self.micnCHT      = 2            # Индекс средней численности в внутр. таблице считанных данных
@@ -130,24 +140,53 @@ class cTerr(object):
                         Tot2007okv, Tos2007okv, Ratio2007okv, \ 
                         numves, kCHT, kVIR, CHTres, VIRres, npok):
 
-        spss.Submit(r"""
-        GET FILE = '%s'. 
-        DATASET NAME %s.
-        """ %(mFile, self.nameDataSet))
+        def getDataSpss(self):
+            spss.Submit(r"""
+            GET FILE = '%s'. 
+            DATASET NAME %s.
+            """ %(mFile, self.nameDataSet))
+    
+    #        ToPrintLog('Чтение Cursor пообъектных данных из '+ mFile)
+    
+            nump=[num[0] for num in npok]
+            nump.insert(1,numves)
+            dataCursor=spss.Cursor(nump)
+            dd = map(missValAll, dataCursor.fetchall())
+            dataCursor.close()
+            return dd
+        
+        def getDataXls(self):
+            if os.access(mFile, os.F_OK):
+                rb = xlrd.open_workbook(mFile,formatting_info=True,encoding_override="cp1251")
+                sh = rb.sheet_by_index(0)
+                dd = []                                     # Собираем матрицу данных с листа Excel
+                for rownum in range(3, sh.nrows):
+                    rr = []                                 # Готовим строку матрицы
+                    for i, np in enumerate(npok):
+                        if i == 0:
+                            s = str(sh.cell_value(rowx=rownum, colx=np[4])).encode('cp1251').strip()
+                            if len(s.split('.',1)[0]) == 1:
+                                s = '0'+s
+                            rr.append(s)
+                        else:
+                            rr.append(missFloat(sh.cell_value(rowx=rownum, colx=np[4])))  # Собираем строку матрицы
+                    rr.insert(1,missFloat(sh.cell_value(rowx=rownum, colx=numves)))
+                    dd.append(rr)                           # Добавляем собранную строку
 
+                del rb
+            else:
+                ToPrintLog('Не найден!! файл данных: ' + mFile)
+            return dd
+
+
+            
         stime = time()
-#        ToPrintLog('Чтение Cursor пообъектных данных из '+ mFile)
-
-        nump=[num[0] for num in npok]
-        nump.insert(1,numves)
-        dataCursor=spss.Cursor(nump)
-        data2008=map(missValAll, dataCursor.fetchall())
-        dataCursor.close()
-
+#        data2008 = getDataSpss(self)
+        data2008 = getDataXls(self)
 #        for k in range(0,len(data2008)):
+#            print k, data2008[k]
 #            data2008[k][0] = data2008[k][0].strip()
 #            print data2008[k][0], type(data2008[k][0]), data2008[k][1], type(data2008[k][1])
-
 # Порядок: ОКВЭД ВЕС ЧИСЛЕНН ВЫРУЧКА ИНВЕСТИЦИИ ОБОРОТ ОТГРУЖЕНО ПРОДАНО ЧИСЛЕН_БЕЗ_СОВМЕСТ ...
 #            0    1     2       3        4         5       6        7             8        
         data  = [rw for rw in data2008 if rw[1] > 0 \
@@ -196,7 +235,7 @@ class cTerr(object):
             
             Tot2007okv.append([0.0 for rw in Tot2008])
             Tos2007okv.append([0.0 for rw in Tot2008])
-            Ratio2007okv.append([0.0 for rw in coeff])
+            Ratio2007okv.append([0.0 for rw in self.micRatio2007])
             
             Tot2008okv[k][0] = rokv[0]
             Tot2009okv[k][0] = rokv[0]
@@ -239,9 +278,8 @@ class cTerr(object):
 
 #        for i in range(0, len(coeffokv)):
 #            print coeffokv[i]
-
         etime = time() - stime
-        ToPrintLog('Время расчёта итогов из '+ mFile.rsplit('\\',1)[1] + ' : %.2f сек.' % (etime))
+        ToPrintLog('..Время расчёта итогов по '+ mFile.rsplit('\\',1)[1] + ' : %.2f сек.' % (etime))
         
         spss.Submit(r"""
         DATASET CLOSE *. 
@@ -261,29 +299,29 @@ class TTotal(cTerr):
     numpokmic     = 11
     vMikro        = False
     malpok = [
-    [1  , 'ОКВЭД', 'tab_33pred-2007.xls', 'tab_33pred-2007-corr'],
-    [5  , 'Cредняя численность работников - всего,чел.', 'tab_33(01-09)_list1.xls', 'tab_33(01-09)_list1-corr'],
-    [8  , 'Выручка (нетто) от реализации товаров, продукции, работ, услуг (без НДС, акцизов и аналогичных обязательных платежей),тыс.руб.', 'tab_33(12)_list1.xls', 'tab_33(12)_list1-corr'],
-    [11 , 'Инвестиции в основной капитал (в части новых и приобретенных по импорту основных средств),тыс.руб.', 'tab_33(13)_list1.xls', 'tab_33(13)_list1-corr'],
-    [14 , 'Оборот организации по малым предприятиям,тыс.руб.', 'tab_33(o)_list1.xls', 'tab_33(o)_list1-corr'],
-    [17 , 'Отгружено товаров собственного производства, выполнено работ и услуг собственными силами (без НДС и акциза),тыс.руб.', 'tab_33(06)_list1.xls', 'tab_33(06)_list1-corr'],
-    [20 , 'Продано товаров несобственного производства (без НДС и акцизов),тыс.руб.', 'tab_33(07)_list1.xls', 'tab_33(07)_list1-corr'],
-    [23 , 'Средняя численность работников списочного состава (без внешних совместителей),чел.', 'tab_33(02-09)_list1.xls', 'tab_33(02-09)_list1-corr'],
-    [26 , 'Фонд начисленной заработной платы внешним совместителям,тыс.руб.', 'tab_33(03-11)_list1.xls', 'tab_33(03-11)_list1-corr'],
-    [29 , 'Фонд начисленной заработной платы всех работников,тыс.руб.', 'tab_33(01-11)_list1.xls', 'tab_33(01-11)_list1-corr'],
-    [32 , 'Фонд начисленной заработной платы работников списочного состава (без внешних совместителей),тыс.руб.', 'tab_33(02-11)_list1.xls', 'tab_33(02-11)_list1-corr']
+    [1  , 'Количество предприятий за январь-декабрь 2007 года, штук ',                                                                      'tab_33pred-2007.xls',     'tab_33pred-2007-corr'    ,2 ],
+    [5  , 'Cредняя численность работников - всего,чел.',                                                                                    'tab_33(01-09)_list1.xls', 'tab_33(01-09)_list1-corr',4 ],
+    [8  , 'Выручка (нетто) от реализации товаров, продукции, работ, услуг (без НДС, акцизов и аналогичных обязательных платежей),тыс.руб.', 'tab_33(12)_list1.xls',    'tab_33(12)_list1-corr'   ,12],
+    [11 , 'Инвестиции в основной капитал (в части новых и приобретенных по импорту основных средств),тыс.руб.',                             'tab_33(13)_list1.xls',    'tab_33(13)_list1-corr'   ,13],
+    [14 , 'Оборот организации ,тыс.руб.',                                                                                                   'tab_33(o)_list1.xls',     'tab_33(o)_list1-corr'    ,9 ],
+    [17 , 'Отгружено товаров собственного производства, выполнено работ и услуг собственными силами (без НДС и акциза),тыс.руб.',           'tab_33(06)_list1.xls',    'tab_33(06)_list1-corr'   ,10],
+    [20 , 'Продано товаров несобственного производства (без НДС и акцизов),тыс.руб.',                                                       'tab_33(07)_list1.xls',    'tab_33(07)_list1-corr'   ,11],
+    [23 , 'Средняя численность работников списочного состава (без внешних совместителей),чел.',                                             'tab_33(02-09)_list1.xls', 'tab_33(02-09)_list1-corr',5 ],
+    [26 , 'Фонд начисленной заработной платы внешним совместителям,тыс.руб.',                                                               'tab_33(03-11)_list1.xls', 'tab_33(03-11)_list1-corr',8 ],
+    [29 , 'Фонд начисленной заработной платы всех работников,тыс.руб.',                                                                     'tab_33(01-11)_list1.xls', 'tab_33(01-11)_list1-corr',6 ],
+    [32 , 'Фонд начисленной заработной платы работников списочного состава (без внешних совместителей),тыс.руб.',                           'tab_33(02-11)_list1.xls', 'tab_33(02-11)_list1-corr',7 ]
     ]
     micpok = [
-    [1  , 'ОКВЭД'],
-    [5  , 'Средняя численность работников (включая выполнявших работы по договорам гражданско-правового характера),чел.'],
-    [8  , 'Выручка (нетто) от продажи товаров, продукции, работ, услуг (без НДС, акцизов и аналогичных обязательных платежей),тыс.руб.'],
-    [11 , 'Инвестиции в основной капитал (в части новых и приобретённых по импорту основных средств) - всего,тыс.руб.'],
-    [14 , 'Оборот организаций,тыс.руб.'],
-    [17 , 'Отгружено товаров собственного производства, выполнено работ и услуг собственными силами (без НДС, акцизов и аналогичных обязательных платежей),тыс.руб.'],
-    [20 , 'Продано товаров несобственного производства (без НДС, акцизов и аналогичных обязательных платежей),тыс.руб.'],
-    [23 , 'Средняя численность работников списочного состава (без внешних совместителей),чел.'],
-    [26 , 'Фонд начисленной заработной платы работников,тыс.руб.'],
-    [29 , 'Фонд начисленной заработной платы работников списочного состава и внешних совместителей,тыс.руб.']
+    [1  , 'Количество предприятий за январь-декабрь 2007 года, штук ',                                                                                                 'tab_33pred-2007.xls',     'tab_33pred-2007-corr'    ,2 ],
+    [5  , 'Средняя численность работников (включая выполнявших работы по договорам гражданско-правового характера),чел.',                                              'tab_33(01-09)_list1.xls', 'tab_33(01-09)_list1-corr',4 ],
+    [8  , 'Выручка (нетто) от продажи товаров, продукции, работ, услуг (без НДС, акцизов и аналогичных обязательных платежей),тыс.руб.',                               'tab_33(12)_list1.xls',    'tab_33(12)_list1-corr'   ,11],
+    [11 , 'Инвестиции в основной капитал (в части новых и приобретённых по импорту основных средств) - всего,тыс.руб.',                                                'tab_33(13)_list1.xls',    'tab_33(13)_list1-corr'   ,12],
+    [14 , 'Оборот организаций,тыс.руб.',                                                                                                                               'tab_33(o)_list1.xls',     'tab_33(o)_list1-corr'    ,8 ],
+    [17 , 'Отгружено товаров собственного производства, выполнено работ и услуг собственными силами (без НДС, акцизов и аналогичных обязательных платежей),тыс.руб.',  'tab_33(06)_list1.xls',    'tab_33(06)_list1-corr'   ,9 ],
+    [20 , 'Продано товаров несобственного производства (без НДС, акцизов и аналогичных обязательных платежей),тыс.руб.',                                               'tab_33(07)_list1.xls',    'tab_33(07)_list1-corr'   ,10],
+    [23 , 'Средняя численность работников списочного состава (без внешних совместителей),чел.',                                                                        'tab_33(02-09)_list1.xls', 'tab_33(02-09)_list1-corr',5 ],
+    [26 , 'Фонд начисленной заработной платы работников,тыс.руб.',                                                                                                     'tab_33(01-11)_list1.xls', 'tab_33(01-11)_list1-corr',6 ],
+    [29 , 'Фонд начисленной заработной платы работников списочного состава и внешних совместителей,тыс.руб.',                                                          'tab_33(02-11)_list1.xls', 'tab_33(02-11)_list1-corr',7 ]
     ]
 
     def __init__ (self):
@@ -387,8 +425,10 @@ class TTotal(cTerr):
                 
                 # Разрез по ОКВЭД
                 k = 0
+#                print 'Доли: ', len(rt.micRatio2007Okv), 'строк по ', len(rt.micRatio2007Okv[0]), ' долей.'
                 for rokv in rt.micRatio2007Okv:   # Доли микропредприятий в 2007 по ОКВЭД-2007 - схеме сборки
                     rProk = getProd(self, rPred, rokv[0], 0, 3)
+#                    print 'Доля для ', k, rokv[0],
                     rt.micRatio2007Okv[k][1 ] = rProk
                     rt.micRatio2007Okv[k][2 ] = rProk
                     rt.micRatio2007Okv[k][3 ] = rProd
@@ -418,23 +458,29 @@ class TTotal(cTerr):
                 ToPrintLog('Не найден!! файл долей для ' + rt.OKATO + ' ' + rt.sTerr.strip())
             for i, rat in enumerate(rt.micRatio2007Okv):
                 for j in range(1, len(rat)) :
-                    rt.malRatio2007Okv[i][j] = 1 - rt.micRatio2007Okv[i][j]
-                    rt.malTos2007Okv[i][j] = rt.malTot2007Okv[i][j] * rt.malRatio2007Okv[i][j] * rt.malcoeffOkv[i][j]
+                    rt.malRatio2007Okv[i][j] = 1-rt.micRatio2007Okv[i][j]
+                    rt.malTos2007Okv[i][j]   = rt.malTot2007Okv[i][j]*rt.malRatio2007Okv[i][j]*rt.malcoeffOkv[i][j]
+                for j in range(1, len(rt.micTot2007Okv[0])) :
+                    rt.micTot2007Okv[i][j] = rt.malTot2007Okv[i][j]
+                    rt.micTos2007Okv[i][j]   = rt.malTot2007Okv[i][j]*rt.micRatio2007Okv[i][j]*rt.miccoeffOkv[i][j]
+                rt.micTot2007Okv[i][9] = rt.malTot2007Okv[i][11]
+                rt.micTos2007Okv[i][9] = rt.malTot2007Okv[i][11] * rt.micRatio2007Okv[i][11] * rt.miccoeffOkv[i][9]
 
     def allTerr(self):
         for rt in self.aTerr:
+            stime = time()
             ToPrintLog('....'+rt.nOkrug+' '+rt.sOkrug+' '+rt.OKATO+' '+rt.sTerr.strip()+' МАЛЫЕ предприятия')
             self.vMikro = False
-            rt.evalTotal(self.vMikro, rt.malFile, self.ListOkv.listOkvedmal, self.OkRul.rulesAssPlus,
+            rt.evalTotal(self.vMikro, rt.malFileXls, self.ListOkv.listOkvedmal, self.OkRul.rulesAssPlus,
             rt.malTot2008, rt.malTot2009, rt.malcoeff, rt.malTot2008Okv, rt.malTot2009Okv, rt.malcoeffOkv, 
-            rt.malTot2007Okv, rt.malTos2007Okv, rt.malRatio2007Okv, rt.numvesmal,
+            rt.malTot2007Okv, rt.malTos2007Okv, rt.malRatio2007Okv, rt.numvesmalXls,
             rt.malnCHT, rt.malnVIR, rt.malCHTres, rt.malVIRres, self.malpok)
 
             ToPrintLog('....'+rt.nOkrug+' '+rt.sOkrug+' '+rt.OKATO+' '+rt.sTerr.strip()+' МИКРО предприятия')
             self.vMikro = True
-            rt.evalTotal(self.vMikro, rt.micFile, self.ListOkv.listOkvedmic, self.OkRul.rulesAssPlus,
+            rt.evalTotal(self.vMikro, rt.micFileXls, self.ListOkv.listOkvedmic, self.OkRul.rulesAssPlus,
             rt.micTot2008, rt.micTot2009, rt.miccoeff, rt.micTot2008Okv, rt.micTot2009Okv, rt.miccoeffOkv, 
-            rt.micTot2007Okv, rt.micTos2007Okv, rt.micRatio2007Okv, rt.numvesmic,
+            rt.micTot2007Okv, rt.micTos2007Okv, rt.micRatio2007Okv, rt.numvesmicXls,
             rt.micnCHT, rt.micnVIR, rt.micCHTres, rt.micVIRres, self.micpok)
 
             ToPrintLog('        |ОКАТ|       |            | Предприятий  | Численность ')
@@ -445,6 +491,9 @@ class TTotal(cTerr):
             ToPrintLog('2008 мик' + '|{0:4}|{1:7d}|{2:12}|{3:13.0f} |{4:13.0f}'.format(rt.OKATO,rt.malnnab,rt.micTot2008[0],rt.micTot2008[1], rt.micTot2008[2]))
             ToPrintLog('2009 микро           |{0:12}|{1:13.0f} |{2:13.0f}'.format(rt.micTot2009[0],rt.micTot2009[1],rt.micTot2009[2]))
             ToPrintLog('   Коэффициент микро |{0:12}|{1:13.4f} |{2:13.4f}'.format(rt.miccoeff[0],rt.miccoeff[1],rt.miccoeff[2]))
+
+            etime = time() - stime
+            ToPrintLog('....Время расчёта итогов по '+rt.OKATO+ ' : %.2f сек.' % (etime))
         
         closeSPSSfiles()
         
@@ -455,23 +504,26 @@ class TTotal(cTerr):
         ToPrintLog('Экспорт итогов по территориям в Excel')
         dirTotal = newDir + totalDir + '\\'
         ezxf = easyxf
-        heading_xf = ezxf('font: name Calibri, bold on, height 230; \
+        heading_xf = ezxf('font: name Times New Roman, bold on, height 230; \
         align: wrap yes, vert centre, horiz center') 
-        headcol_xf = ezxf('font: name Calibri, bold on; \
+        headcol_xf = ezxf('font: name Times New Roman, bold on; \
         align: wrap yes, vert centre, horiz center; \
         borders: left 1, right 1, top 1, bottom 1') 
-        headrow_xf = ezxf('font: name Calibri; \
+        headrow_xf = ezxf('font: name Times New Roman, bold off; \
         align: wrap yes, vert centre, horiz left; \
         borders:left 1, right 1, top 1, bottom 1') 
-        valnrow_xf = ezxf('font: name Calibri, bold off; \
+        headrowc_xf = ezxf('font: name Times New Roman, bold off; \
+        align: wrap yes, vert centre, horiz centre; \
+        borders:left 1, right 1, top 1, bottom 1') 
+        valnrow_xf = ezxf('font: name Times New Roman, bold off; \
         align: wrap no, vert centre, horiz right; \
         borders:left 1, right 1, top 1, bottom 1', \
         num_format_str="### ### ### ###") 
-        valdrow_xf = ezxf('font: name Calibri, bold off; \
+        valdrow_xf = ezxf('font: name Times New Roman, bold off; \
         align: wrap no, vert centre, horiz right; \
         borders:left 1, right 1, top 1, bottom 1', \
         num_format_str="### ### ### ###.0") 
-        valfrow_xf = ezxf('font: name Calibri, bold off; \
+        valfrow_xf = ezxf('font: name Times New Roman, bold off; \
         align: wrap no, vert centre, horiz right; \
         borders:left 1, right 1, top 1, bottom 1', \
         num_format_str="0.0000") 
@@ -540,18 +592,92 @@ class TTotal(cTerr):
     
             it = 2
             for rt in self.aTerr:
-                ToPrintLog(rt.nOkrug+ '|{0:4}|'.format(rt.OKATO))
+#                ToPrintLog(rt.nOkrug+ '|{0:4}|'.format(rt.OKATO))
                 ws.write(2,it,rt.sTerr,headcol_xf)                                # Названия территорий
                 ws.write(3,it,it-1,headcol_xf)
                 ws.col(it).width = 0x0d00 + 50                                    # Ширина колонки с цифрами
                 it = it + 1
             
+        def allOkvTerrTotalTitle(self, ws, titleTab):
+            ws.write_merge(0,2, 2,8, titleTab, heading_xf)
+            #ws.write_merge(lineStart, lineFinish, columnStart, columnFinish, 'text', style)
+            
+#            ws.write(2,0,"",headcol_xf)
+            ws.col(0).width = 0x0d00 * 3
+            ws.write(3,0,"Виды деятельности",headcol_xf)
+            ws.write(3,1,"Код ОКВЭД (символ)",headcol_xf)
+            ws.write(4,0,"A",headrowc_xf) 
+            ws.write(4,1,"Б",headrowc_xf)
+    
+            it = 2
+            for rt in self.aTerr:
+#                ToPrintLog(rt.nOkrug+ '|{0:4}|'.format(rt.OKATO))
+                ws.write(3,it,rt.sTerr,headcol_xf)                                # Названия территорий
+                ws.write(4,it,it-1,headrowc_xf)
+                ws.col(it).width = 0x0d00 + 50                                    # Ширина колонки с цифрами
+                it = it + 1
+            for i, okv in enumerate(self.ListOkv.listOkvedmal):
+                ws.write(i+5, 0, okv[1], headrow_xf)
+                ws.write(i+5, 1, okv[0], headrowc_xf)
+
+            ws.col(0).width = 0x0d00 * 3
+            ws.row(0).height = 0x0d00 + 50
+
         def allTerrCoeffmal (self, ws, npok):
             nextRow = allTerrTotalCoeffmal(self, self.vMikro, ws, "Количество предприятий", 1, 4)
             for i in range(2, len(npok)):
                 nextRow  = allTerrTotalCoeffmal(self, self.vMikro, ws, npok[i-1][1], i, nextRow)
     
             ws.col(1).width = 0x0d00 * 3                            # Ширина колонки с названием показателя
+        
+        def allOkvTerrCorr(self, vM):
+            
+            def allOkvTerrStr(self, ws, vM, np):
+                cl = 2
+                for rt in self.aTerr:
+                    if vM:
+                        Tos = rt.micTos2007Okv
+                    else:
+                        Tos = rt.malTos2007Okv
+                    for stroka, ts in enumerate(Tos):
+                        i = stroka+5
+                        tval = ts[np]
+                        
+                        if np == 0:
+                            pass
+                        elif np in (1, 2, 8):
+                            tval = round(tval)
+                            if tval <= 0.0001:
+                                tval = '-'
+                            ws.write(i, cl, tval, valnrow_xf)
+                        else:
+                            tval = round(tval,1)
+                            if tval <= 0.0001:
+                                tval = '-'
+                            ws.write(i, cl, tval, valdrow_xf)
+                    cl += 1
+            #----
+            if vM:
+                nameSheet      = 'Итоги по микропредприятиям'
+                nameSuffTitle  = ' (скорректированные значения 2007 года по микропредприятиям)'
+                nameSuffFile   = '_МИКРО'
+                npok = self.micpok
+            else:
+                nameSheet      = 'Итоги по малым'
+                nameSuffTitle  = ' (скорректированные значения 2007 года по малым предприятиям)'
+                nameSuffFile   = '_МП'
+                npok = self.malpok
+            k = 0
+            for np in npok:
+                wbl = Workbook(encoding='cp1251')
+                wsl = wbl.add_sheet(nameSheet)
+                allOkvTerrTotalTitle(self, wsl, np[1]+nameSuffTitle)
+                
+                allOkvTerrStr(self, wsl, vM, k+1)
+                
+                wbl.save(dirTotal + np[3] + nameSuffFile +'.xls')                             #---  Запись таблицы  Конец  ---
+                del wbl
+                k += 1
 #---
 
         wbl = Workbook(encoding='cp1251')
@@ -577,12 +703,8 @@ class TTotal(cTerr):
         del wbi
         
         #---   Скорректированные Итоги в разрезе по ОКВЭД   ---
-        for np in malpok:
-            xlsfile = np[3]+'.xls'
-            
-        
-        
-        
+        allOkvTerrCorr(self, False)                             # Малые
+        allOkvTerrCorr(self, True)                              # микропредприятия
     #---  Запись таблиц Excel - Конец класса  ---
 
 #--- Global functions  ---
@@ -602,6 +724,13 @@ def missVal(d):
 
 def missValAll(d):
     return map(missVal, d)
+
+def missFloat(d):
+    if type(d) is FloatType : 
+        d = float(d) 
+    else: 
+        d = 0.0
+    return d
 
 def ToPrintLog (sMess):
     print str(datetime.now().strftime("%d.%m.%Y %H:%M:%S ")) + str(sMess)
@@ -648,6 +777,7 @@ def FindFilesTerrAll():
         dt = datetime.now().strftime("%d.%m.%Y %H:%M:%S ")
         #print dt, 'Склеивание имён файлов.'
         sokato = '00'
+        dataDir = dataDirXls
         os.chdir(dataDir)
         j = 0
         k = 0
@@ -661,9 +791,11 @@ def FindFilesTerrAll():
                                       )
                                )
               ToPrintLog(TT.rTerr[k].OKATO + ' ' + TT.rTerr[k].sTerr + ' ' + TT.rTerr[k].nOkrug + ' ' + TT.rTerr[k].sOkrug)
-              k = k + 1
-              nfoMal2008 = sokato + mal + sav
-              nfoMic2008 = sokato + mic + sav
+#              nfoMal2008 = sokato + mal + sav
+#              nfoMic2008 = sokato + mic + sav
+
+              nfoMal2008 = 'ф.№ ПМ --- ('       +sokato+')'+TT.rTerr[k].sTerr.strip()+'_1'+'.xls'    # Имя файла данных малых предприятий.
+              nfoMic2008 = 'ф.№ МП(микро) --- ('+sokato+')'+TT.rTerr[k].sTerr.strip()+'_1'+'.xls'    # Имя файла данных микропредприятий.
               if os.access(nfoMal2008, os.F_OK):
                   sMesFile = sMesFileYes
                   TT.aTerr.append(cTerr(dataDir,  mal, mic, datasetListTOGS.cases[i,4][0]
@@ -672,16 +804,17 @@ def FindFilesTerrAll():
                                      ,datasetListTOGS.cases[i,3][0]
                                       )
                                )
-                  ToPrintLog(sMesFile+' '+str(datasetListTOGS.cases[i,4][0])+' '+TT.aTerr[j].malFile)
+                  ToPrintLog(sMesFile+' '+str(datasetListTOGS.cases[i,4][0])+' '+TT.aTerr[j].malFileXls)
                   j = j+1
 
               else:
                   sMesFile = sMesFileNo
-                  #print sMesFile, i+1, datasetListTOGS.cases[i,4][0], nfoMal2008
+#                  print sMesFile, i+1, datasetListTOGS.cases[i,4][0], nfoMal2008
               datasetListTOGS.cases[i,6] = sMesFile +  nfoMal2008
               datasetListTOGS.cases[i,5] = dt
-              if j >= 2:                                          # Ограничение для отладки
-                  break 
+              k = k + 1
+#              if j >= 2:                                          # Ограничение для отладки
+#                  break 
         ToPrintLog('Подготовка списка из '+str(j)+' территорий.')
     spss.Submit(r"""
     DATASET ACTIVATE %s.
@@ -717,7 +850,8 @@ DATASET NAME %s.
 """ %(newDir, ListTOGS, sav, nameListTOGS))
 
 TT = FindFilesTerrAll()
-
+closeSPSSfiles()
+SpssClient.StopClient()
 #ModifyTypeVesAll(TT)
 
 t0 = time()
@@ -737,8 +871,8 @@ ToPrintLog("Прошло от начала (Запись таблиц Excel: %.2f сек.): %.2f сек." % (t21
 
 
 # ---
-closeSPSSfiles()
-
-SpssClient.StopClient()
+#closeSPSSfiles()
+#
+#SpssClient.StopClient()
 
 END PROGRAM.
