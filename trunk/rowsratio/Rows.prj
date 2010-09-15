@@ -23,5 +23,6 @@ Create Tagfile=0
 11=ListOkvedClass.py
 12=Схема сборки ОКВЭД.TXT
 13=TestListOkved.py
+14=TestStro.py
 [Backup]
 LastComment=8 июля 2010
