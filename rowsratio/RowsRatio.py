@@ -1,7 +1,7 @@
-BEGIN PROGRAM PYTHON.
 # !python.exe
 # coding: cp1251
 # 
+#BEGIN PROGRAM PYTHON.
 #C:\Program Files (x86)\SPSSInc\PASWStatistics18\paswstat.com -production e:\Tmp\Spss\Rows\StartMain.spj
 ########################################
 #  
@@ -27,15 +27,15 @@ BEGIN PROGRAM PYTHON.
 #         
 #         
 ############################################
-#       Степанов С.В.   13.09.2010 16:18:17
+#       Степанов С.В.   15.09.2010 18:17:42
 ############################################
 from __future__ import with_statement
 import os
 from datetime import datetime, date, time
 from time import *
 from types import *
-import SpssClient
-import spss 
+#import SpssClient
+#import spss 
 from xlwt import *
 import xlrd
 
@@ -135,26 +135,11 @@ class cTerr(object):
         self.micCHTres   = 15           # Ограничение средней численности микропредприятий
         self.micVIRres   = 60000000     # Ограничение выручки микропредприятий
 
-    def evalTotal(self, vM, mFile, listOkved, rulOk, \ 
-                        Tot2008, Tot2009, coeff, Tot2008okv, Tot2009okv, coeffokv,\ 
-                        Tot2007okv, Tos2007okv, Ratio2007okv, \ 
+    def evalTotal(self, vM, mFile, listOkved, rulOk, \
+                        Tot2008, Tot2009, coeff, Tot2008okv, Tot2009okv, coeffokv, \
+                        Tot2007okv, Tos2007okv, Ratio2007okv, \
                         numves, kCHT, kVIR, CHTres, VIRres, npok):
 
-        def getDataSpss(self):
-            spss.Submit(r"""
-            GET FILE = '%s'. 
-            DATASET NAME %s.
-            """ %(mFile, self.nameDataSet))
-    
-    #        ToPrintLog('Чтение Cursor пообъектных данных из '+ mFile)
-    
-            nump=[num[0] for num in npok]
-            nump.insert(1,numves)
-            dataCursor=spss.Cursor(nump)
-            dd = map(missValAll, dataCursor.fetchall())
-            dataCursor.close()
-            return dd
-        
         def getDataXls(self):
             if os.access(mFile, os.F_OK):
                 rb = xlrd.open_workbook(mFile,formatting_info=True,encoding_override="cp1251")
@@ -178,7 +163,20 @@ class cTerr(object):
                 ToPrintLog('Не найден!! файл данных: ' + mFile)
             return dd
 
-
+#        def getDataSpss(self):
+#            spss.Submit(r"""
+#            GET FILE = '%s'. 
+#            DATASET NAME %s.
+#            """ %(mFile, self.nameDataSet))
+#    
+#    #        ToPrintLog('Чтение Cursor пообъектных данных из '+ mFile)
+#    
+#            nump=[num[0] for num in npok]
+#            nump.insert(1,numves)
+#            dataCursor=spss.Cursor(nump)
+#            dd = map(missValAll, dataCursor.fetchall())
+#            dataCursor.close()
+#            return dd
             
         stime = time()
 #        data2008 = getDataSpss(self)
@@ -190,14 +188,14 @@ class cTerr(object):
 # Порядок: ОКВЭД ВЕС ЧИСЛЕНН ВЫРУЧКА ИНВЕСТИЦИИ ОБОРОТ ОТГРУЖЕНО ПРОДАНО ЧИСЛЕН_БЕЗ_СОВМЕСТ ...
 #            0    1     2       3        4         5       6        7             8        
         data  = [rw for rw in data2008 if rw[1] > 0 \
-                and ((rw[0] in rulOk['PROM'] and rw[2] <= 100) \ 
-                  or (rw[0] in rulOk['STRO'] and rw[2] <= 100) \ 
-                  or (rw[0] in rulOk['TRAN'] and rw[2] <= 100) \ 
-                  or (rw[0] in rulOk['SECH'] and rw[2] <=  60) \ 
-                  or (rw[0] in rulOk['NTSF'] and rw[2] <=  60) \ 
-                  or (rw[0] in rulOk['OPTO'] and rw[2] <=  50) \ 
-                  or (rw[0] in rulOk['ROTO'] and rw[2] <=  30) \ 
-                  or (rw[0] not in rulOk['PROC'] and rw[2] <= 100) \ 
+                and ((rw[0] in rulOk['PROM'] and rw[2] <= 100) \
+                  or (rw[0] in rulOk['STRO'] and rw[2] <= 100) \
+                  or (rw[0] in rulOk['TRAN'] and rw[2] <= 100) \
+                  or (rw[0] in rulOk['SECH'] and rw[2] <=  60) \
+                  or (rw[0] in rulOk['NTSF'] and rw[2] <=  60) \
+                  or (rw[0] in rulOk['OPTO'] and rw[2] <=  50) \
+                  or (rw[0] in rulOk['ROTO'] and rw[2] <=  30) \
+                  or (rw[0] not in rulOk['PROC'] and rw[2] <= 100) \
                     )]                                                   # По правилам 2007 года
         ToPrintLog('Всего в выборке 2008 года                     :'+str(len(data2008))+' предприятий')
         ToPrintLog('Осталось в выборке по правилам 2007 года      :'+str(len(data))+' предприятий')
@@ -205,7 +203,7 @@ class cTerr(object):
         ToPrintLog('    Из них с нулевыми весами                  :'+str(len([rw for rw in data2008 if rw[1] <= 0])))
 #        for rw in data:
 #            print rw
-        data9 = [rw for rw in data2008 if (rw[1] > 0 \ 
+        data9 = [rw for rw in data2008 if (rw[1] > 0 \
                 and rw[kCHT] <= CHTres and rw[kVIR] <= VIRres)]          # По правилам 2009 года
 
         ToPrintLog('Осталось в выборке по правилам 2009 года      :'+str(len(data9))+' предприятий')
@@ -281,9 +279,9 @@ class cTerr(object):
         etime = time() - stime
         ToPrintLog('..Время расчёта итогов по '+ mFile.rsplit('\\',1)[1] + ' : %.2f сек.' % (etime))
         
-        spss.Submit(r"""
-        DATASET CLOSE *. 
-        """ )
+#        spss.Submit(r"""
+#        DATASET CLOSE *. 
+#        """ )
 
 #class rTerr:
 #    def __init__ (self, nO, sT, kO, sO):
@@ -414,15 +412,6 @@ class TTotal(cTerr):
                 rt.micRatio2007[10]  =  rPred
                 rt.micRatio2007[11]  =  rPred
 
-                for np in range(0, len(rt.micRatio2007)):
-                    rt.malRatio2007[np]  = 1 - rt.micRatio2007[np]          # Доля малых от микро
-                    rt.malTos2007[np] = rt.malTot2007[np] * rt.malRatio2007[np] * rt.malcoeff[np]
-                for np in range(0, len(rt.micTot2007)):
-                    rt.micTot2007[np] = rt.malTot2007[np]
-                    rt.micTos2007[np] = rt.malTot2007[np] * rt.micRatio2007[np] * rt.miccoeff[np]
-                rt.micTot2007[9] = rt.malTot2007[11]
-                rt.micTos2007[9] = rt.malTot2007[11] * rt.micRatio2007[11] * rt.miccoeff[9]
-                
                 # Разрез по ОКВЭД
                 k = 0
 #                print 'Доли: ', len(rt.micRatio2007Okv), 'строк по ', len(rt.micRatio2007Okv[0]), ' долей.'
@@ -456,6 +445,16 @@ class TTotal(cTerr):
 #                rt.malRatio2007Okv[0][11] = rPred
             else:
                 ToPrintLog('Не найден!! файл долей для ' + rt.OKATO + ' ' + rt.sTerr.strip())
+
+            for np in range(0, len(rt.micRatio2007)):
+                rt.malRatio2007[np]  = 1 - rt.micRatio2007[np]          # Доля малых от микро
+                rt.malTos2007[np] = rt.malTot2007[np] * rt.malRatio2007[np] * rt.malcoeff[np]
+            for np in range(0, len(rt.micTot2007)):
+                rt.micTot2007[np] = rt.malTot2007[np]
+                rt.micTos2007[np] = rt.malTot2007[np] * rt.micRatio2007[np] * rt.miccoeff[np]
+            rt.micTot2007[9] = rt.malTot2007[11]
+            rt.micTos2007[9] = rt.malTot2007[11] * rt.micRatio2007[11] * rt.miccoeff[9]
+                
             for i, rat in enumerate(rt.micRatio2007Okv):
                 for j in range(1, len(rat)) :
                     rt.malRatio2007Okv[i][j] = 1-rt.micRatio2007Okv[i][j]
@@ -495,7 +494,7 @@ class TTotal(cTerr):
             etime = time() - stime
             ToPrintLog('....Время расчёта итогов по '+rt.OKATO+ ' : %.2f сек.' % (etime))
         
-        closeSPSSfiles()
+#        closeSPSSfiles()
         
         self.getTotal2007()             # Взять Итоги 2007 года
         self.getRatioMic()              # Взять доли микропредприятий
@@ -738,120 +737,163 @@ def ToPrintLog (sMess):
 def ModifyTypeVesAll(TT):
     """ Преобразование типа переменной ВЕС из строкового в числовой   """
     ToPrintLog('Преобразование типа переменной ВЕС из строкового в числовой')
-    for rTerr in TT.aTerr:
-        #ToPrintLog(str(rTerr.OKATO)+str(rTerr.sTerr)+str(rTerr.nOkrug)+str(rTerr.sOkrug)+str(rTerr.malFile)+str(rTerr.micFile))
-        #ToPrintLog(str(rTerr.OKATO)+str(rTerr.sTerr))
-        #ToPrintLog("---  :: Малые и микро предприятия ::  ---")
-        spss.Submit(r"""
-        GET FILE = '%s'. 
-        ALTER TYPE      ВЕС(F5.2).
-        VARIABLE LEVEL  ВЕС(SCALE).
-        FORMATS         ВЕС(F5.2). 
-        EXECUTE.
-        SAVE /OUTFILE = '%s'. 
-        DATASET CLOSE *.
-        GET FILE = '%s'. 
-        ALTER TYPE      ВЕС(F5.2).
-        VARIABLE LEVEL  ВЕС(SCALE).
-        FORMATS         ВЕС(F5.2). 
-        EXECUTE.
-        SAVE /OUTFILE = '%s'. 
-        DATASET CLOSE *.
-        """ %(rTerr.malFile, rTerr.malFile, rTerr.micFile, rTerr.micFile))
+#    for rTerr in TT.aTerr:
+#        #ToPrintLog(str(rTerr.OKATO)+str(rTerr.sTerr)+str(rTerr.nOkrug)+str(rTerr.sOkrug)+str(rTerr.malFile)+str(rTerr.micFile))
+#        #ToPrintLog(str(rTerr.OKATO)+str(rTerr.sTerr))
+#        #ToPrintLog("---  :: Малые и микро предприятия ::  ---")
+#        spss.Submit(r"""
+#        GET FILE = '%s'. 
+#        ALTER TYPE      ВЕС(F5.2).
+#        VARIABLE LEVEL  ВЕС(SCALE).
+#        FORMATS         ВЕС(F5.2). 
+#        EXECUTE.
+#        SAVE /OUTFILE = '%s'. 
+#        DATASET CLOSE *.
+#        GET FILE = '%s'. 
+#        ALTER TYPE      ВЕС(F5.2).
+#        VARIABLE LEVEL  ВЕС(SCALE).
+#        FORMATS         ВЕС(F5.2). 
+#        EXECUTE.
+#        SAVE /OUTFILE = '%s'. 
+#        DATASET CLOSE *.
+#        """ %(rTerr.malFile, rTerr.malFile, rTerr.micFile, rTerr.micFile))
 
-def FindFilesTerrAll():
-    """ Проверка на полноту файлов данных выборок по малым и микро и формирование массива объектов cTerr """
-    spss.Submit(r"""
-    DATASET CLOSE ALL.
-    GET FILE = '%s%s%s'. 
-    DATASET NAME %s.
-    """ %(newDir, ListTOGS, sav, nameListTOGS))
-    TT = TTotal()
-    # Номер, Территория, Кодокруга, Федеральныйокруг, ОКАТО, Датаизменения, ПоДанным, 
-    #   0         1          2            3             4           5          6
-
-    with spss.DataStep():
-        # Таблица описаний ТОГС
-        # SpssClient.LogToViewer('Чтение таблицы описаний ТОГС.')
-        datasetListTOGS = spss.Dataset(name=nameListTOGS)
-        dt = datetime.now().strftime("%d.%m.%Y %H:%M:%S ")
-        #print dt, 'Склеивание имён файлов.'
-        sokato = '00'
-        dataDir = dataDirXls
-        os.chdir(dataDir)
-        j = 0
-        k = 0
-        for i in range(len(datasetListTOGS.cases)):
-           if datasetListTOGS.cases[i,4][0] <= 99: 
-              sokato = "%02i" % datasetListTOGS.cases[i,4][0]
-              TT.rTerr.append(cTerr(dataDir, mal, mic, datasetListTOGS.cases[i,4][0]
-                                     ,datasetListTOGS.cases[i,1][0]
-                                     ,datasetListTOGS.cases[i,2][0]
-                                     ,datasetListTOGS.cases[i,3][0]
-                                      )
-                               )
-              ToPrintLog(TT.rTerr[k].OKATO + ' ' + TT.rTerr[k].sTerr + ' ' + TT.rTerr[k].nOkrug + ' ' + TT.rTerr[k].sOkrug)
-#              nfoMal2008 = sokato + mal + sav
-#              nfoMic2008 = sokato + mic + sav
-
-              nfoMal2008 = 'ф.№ ПМ --- ('       +sokato+')'+TT.rTerr[k].sTerr.strip()+'_1'+'.xls'    # Имя файла данных малых предприятий.
-              nfoMic2008 = 'ф.№ МП(микро) --- ('+sokato+')'+TT.rTerr[k].sTerr.strip()+'_1'+'.xls'    # Имя файла данных микропредприятий.
-              if os.access(nfoMal2008, os.F_OK):
-                  sMesFile = sMesFileYes
-                  TT.aTerr.append(cTerr(dataDir,  mal, mic, datasetListTOGS.cases[i,4][0]
-                                     ,datasetListTOGS.cases[i,1][0]
-                                     ,datasetListTOGS.cases[i,2][0]
-                                     ,datasetListTOGS.cases[i,3][0]
-                                      )
-                               )
-                  ToPrintLog(sMesFile+' '+str(datasetListTOGS.cases[i,4][0])+' '+TT.aTerr[j].malFileXls)
-                  j = j+1
-
-              else:
-                  sMesFile = sMesFileNo
-#                  print sMesFile, i+1, datasetListTOGS.cases[i,4][0], nfoMal2008
-              datasetListTOGS.cases[i,6] = sMesFile +  nfoMal2008
-              datasetListTOGS.cases[i,5] = dt
-              k = k + 1
+#def FindFilesTerrAll():
+#    """ Проверка на полноту файлов данных выборок по малым и микро и формирование массива объектов cTerr """
+#    spss.Submit(r"""
+#    DATASET CLOSE ALL.
+#    GET FILE = '%s%s%s'. 
+#    DATASET NAME %s.
+#    """ %(newDir, ListTOGS, sav, nameListTOGS))
+#    TT = TTotal()
+#    # Номер, Территория, Кодокруга, Федеральныйокруг, ОКАТО, Датаизменения, ПоДанным, 
+#    #   0         1          2            3             4           5          6
+#
+#    with spss.DataStep():
+#        # Таблица описаний ТОГС
+#        # SpssClient.LogToViewer('Чтение таблицы описаний ТОГС.')
+#        datasetListTOGS = spss.Dataset(name=nameListTOGS)
+#        dt = datetime.now().strftime("%d.%m.%Y %H:%M:%S ")
+#        #print dt, 'Склеивание имён файлов.'
+#        sokato = '00'
+#        dataDir = dataDirXls
+#        os.chdir(dataDir)
+#        j = 0
+#        k = 0
+#        for i in range(len(datasetListTOGS.cases)):
+#           if datasetListTOGS.cases[i,4][0] <= 99: 
+#              sokato = "%02i" % datasetListTOGS.cases[i,4][0]
+#              TT.rTerr.append(cTerr(dataDir, mal, mic, datasetListTOGS.cases[i,4][0]
+#                                     ,datasetListTOGS.cases[i,1][0]
+#                                     ,datasetListTOGS.cases[i,2][0]
+#                                     ,datasetListTOGS.cases[i,3][0]
+#                                      )
+#                               )
+#              ToPrintLog(TT.rTerr[k].OKATO + ' ' + TT.rTerr[k].sTerr + ' ' + TT.rTerr[k].nOkrug + ' ' + TT.rTerr[k].sOkrug)
+##              nfoMal2008 = sokato + mal + sav
+##              nfoMic2008 = sokato + mic + sav
+#
+#              nfoMal2008 = 'ф.№ ПМ --- ('       +sokato+')'+TT.rTerr[k].sTerr.strip()+'_1'+'.xls'    # Имя файла данных малых предприятий.
+#              nfoMic2008 = 'ф.№ МП(микро) --- ('+sokato+')'+TT.rTerr[k].sTerr.strip()+'_1'+'.xls'    # Имя файла данных микропредприятий.
+#              if os.access(nfoMal2008, os.F_OK):
+#                  sMesFile = sMesFileYes
+#                  TT.aTerr.append(cTerr(dataDir,  mal, mic, datasetListTOGS.cases[i,4][0]
+#                                     ,datasetListTOGS.cases[i,1][0]
+#                                     ,datasetListTOGS.cases[i,2][0]
+#                                     ,datasetListTOGS.cases[i,3][0]
+#                                      )
+#                               )
+#                  ToPrintLog(sMesFile+' '+str(datasetListTOGS.cases[i,4][0])+' '+TT.aTerr[j].malFileXls)
+#                  j = j+1
+#
+#              else:
+#                  sMesFile = sMesFileNo
+##                  print sMesFile, i+1, datasetListTOGS.cases[i,4][0], nfoMal2008
+#              datasetListTOGS.cases[i,6] = sMesFile +  nfoMal2008
+#              datasetListTOGS.cases[i,5] = dt
+#              k = k + 1
 #              if j >= 2:                                          # Ограничение для отладки
 #                  break 
+#        ToPrintLog('Подготовка списка из '+str(j)+' территорий.')
+#    spss.Submit(r"""
+#    DATASET ACTIVATE %s.
+#    SAVE OUTFILE = '%s%s%s'.
+#    DATASET CLOSE *. 
+#    """ %(nameListTOGS, newDir, ListTOGS, sav))
+#    os.chdir(newDir)
+#    return TT
+
+def findFilesTerrAllXls():
+    TT = TTotal()
+    dataDir = dataDirXls
+    os.chdir(dataDir)
+    # Номер, Территория, Кодокруга, Федеральныйокруг, ОКАТО
+    #   0         1          2            3             4  
+    j = 0
+    k = 0
+    if os.access(newDir +ListTOGS+ '.xls', os.F_OK):
+        rb = xlrd.open_workbook(newDir +ListTOGS+ '.xls',formatting_info=True,encoding_override="cp1251")
+        sh = rb.sheet_by_index(0)
+        for i in range(1, sh.nrows):
+#            print i, sh.cell_value(rowx=i, colx=1).encode('cp1251').strip(), sh.cell_value(rowx=i, colx=2), \
+#                     sh.cell_value(rowx=i, colx=3).encode('cp1251').strip(), sh.cell_value(rowx=i, colx=4)
+            nTerr  = sh.cell_value(rowx=i, colx=1).encode('cp1251').strip()
+            kOkrug = sh.cell_value(rowx=i, colx=2)
+            nOkrug = sh.cell_value(rowx=i, colx=3).encode('cp1251').strip()
+            kOKATO = sh.cell_value(rowx=i, colx=4)
+            if kOKATO not in [86, 87, 79]:  continue                  # Ограничение для отладки
+            if kOKATO <= 99:
+                sokato = "%02i" % kOKATO
+                TT.rTerr.append(cTerr(dataDir, mal, mic, kOKATO, nTerr, kOkrug, nOkrug))
+                ToPrintLog(TT.rTerr[k].OKATO + ' ' + TT.rTerr[k].sTerr + ' ' + TT.rTerr[k].nOkrug + ' ' + TT.rTerr[k].sOkrug)
+                nfoMal2008 = 'ф.№ ПМ --- ('       +sokato+')'+TT.rTerr[k].sTerr.strip()+'_1'+'.xls'    # Имя файла данных малых предприятий.
+                nfoMic2008 = 'ф.№ МП(микро) --- ('+sokato+')'+TT.rTerr[k].sTerr.strip()+'_1'+'.xls'    # Имя файла данных микропредприятий.
+                if os.access(nfoMal2008, os.F_OK):
+                    sMesFile = sMesFileYes
+                    TT.aTerr.append(cTerr(dataDir,  mal, mic, kOKATO, nTerr, kOkrug, nOkrug))
+                    ToPrintLog(sMesFile+' '+str(kOKATO)+' '+TT.aTerr[j].malFileXls)
+                    j = j+1
+                else:
+                    sMesFile = sMesFileNo
+#                print sMesFile, i+1, kOKATO, nTerr,
+                k = k + 1
+                    
         ToPrintLog('Подготовка списка из '+str(j)+' территорий.')
-    spss.Submit(r"""
-    DATASET ACTIVATE %s.
-    SAVE OUTFILE = '%s%s%s'.
-    DATASET CLOSE *. 
-    """ %(nameListTOGS, newDir, ListTOGS, sav))
+
+    
     os.chdir(newDir)
     return TT
-        
 ############################################################
 
 if __name__ == '__main__':
     __name__ = 'RatioRows'
 
-SpssClient.StartClient()
-SpssClient.SetCurrentDirectory(newDir)
+#SpssClient.StartClient()
+#SpssClient.SetCurrentDirectory(newDir)
 os.chdir(newDir)
 print 'Текущая директория (Python): ', os.curdir, os.getcwd()
-print 'Текущая директория (Spss  ): ', SpssClient.GetCurrentDirectory() 
+#print 'Текущая директория (Spss  ): ', SpssClient.GetCurrentDirectory() 
 dt = datetime.now().strftime("%d.%m.%Y %H:%M:%S  ")
 print (str(dt) + 'Старт головного модуля TestStr.')
 
 #NewOutputDoc = SpssClient.NewOutputDoc()
 #NewOutputDoc.SetAsDesignatedOutputDoc()
-NewOutputDoc = SpssClient.GetDesignatedOutputDoc()
-SpssOutputUI = NewOutputDoc.GetOutputUI() 
-SpssOutputUI.SetVisible(True) 
+#NewOutputDoc = SpssClient.GetDesignatedOutputDoc()
+#SpssOutputUI = NewOutputDoc.GetOutputUI() 
+#SpssOutputUI.SetVisible(True) 
 
-spss.Submit(r"""
-DATASET CLOSE ALL.
-GET FILE = '%s%s%s'. 
-DATASET NAME %s.
-""" %(newDir, ListTOGS, sav, nameListTOGS))
+#spss.Submit(r"""
+#DATASET CLOSE ALL.
+#GET FILE = '%s%s%s'. 
+#DATASET NAME %s.
+#""" %(newDir, ListTOGS, sav, nameListTOGS))
 
-TT = FindFilesTerrAll()
-closeSPSSfiles()
-SpssClient.StopClient()
+#TT = FindFilesTerrAll()
+
+TT = findFilesTerrAllXls()
+
+#closeSPSSfiles()
+#SpssClient.StopClient()
 #ModifyTypeVesAll(TT)
 
 t0 = time()
@@ -875,4 +917,4 @@ ToPrintLog("Прошло от начала (Запись таблиц Excel: %.2f сек.): %.2f сек." % (t21
 #
 #SpssClient.StopClient()
 
-END PROGRAM.
+#END PROGRAM.

@@ -1,25 +1,29 @@
 [Open Files]
 Active File Display Mode=3
-Active File Index=3
 Open File Line0=101
 Open File Line1=482
 Open File Line2=0
 Open File Line3=0
+Open File Line4=28957
 Open File Pos0=1129
 Open File Pos1=1704
 Open File Pos2=0
 Open File Pos3=170
+Open File Pos4=30869
 Open File Window Pos0=0,1,-1,-1,-5,-30,28,28,953,593
 Open File Window Pos1=0,1,-1,-1,-5,-30,252,252,1149,819
 Open File Window Pos2=0,1,-1,-1,-5,-30,280,280,1177,847
-Open File Window Pos3=2,3,-1,-1,-5,-30,56,56,953,623
+Open File Window Pos3=0,1,-1,-1,-5,-30,56,56,953,623
+Open File Window Pos4=0,1,-1,-1,-5,-30,112,112,1029,737
 Open File0=.\ListOkvedClass.py
 Open File1=.\OkvedAssemblyClass.py
 Open File2=.\TestOkved.py
 Open File3=.\TestStro.py
-Open File4=
+Open File4=.\RowsRatio.py
+Open File5=
 Remember Files=1
 
 [Project Information]
 Project Start=DA07080003000B00160026002300000056
 Working Time=103630
+
