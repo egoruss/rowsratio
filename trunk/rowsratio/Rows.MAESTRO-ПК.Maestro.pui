@@ -5,17 +5,17 @@ Open File Line0=0
 Open File Line1=0
 Open File Line2=1071
 Open File Line3=0
-Open File Line4=15999
+Open File Line4=22167
 Open File Pos0=0
 Open File Pos1=0
 Open File Pos2=2661
 Open File Pos3=173
-Open File Pos4=19485
+Open File Pos4=23571
 Open File Window Pos0=0,1,-1,-1,-5,-30,28,28,953,593
 Open File Window Pos1=0,1,-1,-1,-5,-30,280,280,1177,847
 Open File Window Pos2=0,1,-1,-1,-5,-30,168,168,1085,793
 Open File Window Pos3=0,1,-1,-1,-5,-30,168,168,1085,793
-Open File Window Pos4=2,3,-1,-1,-5,-28,140,140,1057,765
+Open File Window Pos4=2,3,-1,-1,-5,-34,140,140,1057,765
 Open File0=.\ListOkvedClass.py
 Open File1=.\TestOkved.py
 Open File2=E:\Tmp\Spss\rowsratio\TestLog.py
@@ -26,5 +26,4 @@ Remember Files=1
 
 [Project Information]
 Project Start=DA07080003000B00160026002300000056
-Working Time=795332
-
+Working Time=818878
