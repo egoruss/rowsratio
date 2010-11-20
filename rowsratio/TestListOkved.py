@@ -19,5 +19,7 @@ def ToPrintLog (sMess):
 from ListOkvedClass import *
 
 LiO = ListOkved(ToPrintLog, _newDir)
+i = 0
 for re in LiO.listOkvedmal:
-    print re[0], re[1], re[2]
+    print i, re[0], re[1], re[2]
+    i += 1

@@ -40,7 +40,9 @@ class ListOkved(object):
         self.OkRul = OkvedAss(ToPrint, ListOkvedDir)
 #        self.nameFileListOkvedmal = '\\total2009\\tabl_33_1401(1)_1121100010001.xls'
 #        self.nameFileListOkvedmic = '\\total2009\\ׁ׳׀ גסודמ-1121100010001.xls'
-        self.nameFileListOkvedmal = '\\סגמהû ּֿ 2007\\tab_33(01-09)_list1.xls'
-        self.nameFileListOkvedmic = '\\סגמהû ּֿ 2007\\tab_33(01-09)_list1.xls'
+#        self.nameFileListOkvedmal = '\\סגמהû ּֿ 2007\\tab_33(01-09)_list1.xls'
+#        self.nameFileListOkvedmic = '\\סגמהû ּֿ 2007\\tab_33(01-09)_list1.xls'
+        self.nameFileListOkvedmal = '\\סגמהû ּֿ 2007\\OkvedList2007.xls'
+        self.nameFileListOkvedmic = '\\סגמהû ּֿ 2007\\OkvedList2007.xls'
         self.listOkvedmal = getListOkved(self, self.nameFileListOkvedmal, self.OkRul.rulesAssPlus, 2, 0, 6)
         self.listOkvedmic = getListOkved(self, self.nameFileListOkvedmic, self.OkRul.rulesAssPlus, 2, 0, 6)
