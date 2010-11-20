@@ -1,29 +1,29 @@
 [Open Files]
 Active File Display Mode=3
-Active File Index=4
-Open File Line0=0
+Open File Line0=35180
 Open File Line1=0
-Open File Line2=1071
+Open File Line2=0
 Open File Line3=0
-Open File Line4=22167
-Open File Pos0=0
-Open File Pos1=0
-Open File Pos2=2661
-Open File Pos3=173
-Open File Pos4=23571
-Open File Window Pos0=0,1,-1,-1,-5,-30,28,28,953,593
-Open File Window Pos1=0,1,-1,-1,-5,-30,280,280,1177,847
-Open File Window Pos2=0,1,-1,-1,-5,-30,168,168,1085,793
-Open File Window Pos3=0,1,-1,-1,-5,-30,168,168,1085,793
-Open File Window Pos4=2,3,-1,-1,-5,-34,140,140,1057,765
-Open File0=.\ListOkvedClass.py
-Open File1=.\TestOkved.py
-Open File2=E:\Tmp\Spss\rowsratio\TestLog.py
-Open File3=E:\Tmp\Spss\rowsratio\TestTran.py
-Open File4=.\RowsRatioD.py
+Open File Line4=38
+Open File Pos0=35646
+Open File Pos1=94
+Open File Pos2=0
+Open File Pos3=479
+Open File Pos4=2301
+Open File Window Pos0=0,1,-1,-1,-5,-34,0,0,569,450
+Open File Window Pos1=0,1,-1,-1,-5,-34,569,300,1138,600
+Open File Window Pos2=0,1,-1,-1,-5,-34,569,600,1138,900
+Open File Window Pos3=0,1,-1,-1,-5,-34,0,450,569,900
+Open File Window Pos4=0,1,-1,-1,-5,-34,569,0,1138,300
+Open File0=.\RowsRatioD.py
+Open File1=E:\Tmp\Spss\rowsratio\TestStr.py
+Open File2=.\TestOkved.py
+Open File3=.\TestListOkved.py
+Open File4=.\ListOkvedClass.py
 Open File5=
 Remember Files=1
 
 [Project Information]
-Project Start=DA07080003000B00160026002300000056
-Working Time=818878
+Project Start=DA07080003000B00140026002300000054
+Working Time=1066773
+
